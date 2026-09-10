@@ -3,7 +3,7 @@
  * Edite APENAS este arquivo para trocar o Discord da loja, suporte etc.
  */
 
-export const DISCORD_URL = "https://discord.gg/SEU-LINK";
+export const DISCORD_URL = "https://discord.gg/BMJfav9TNR";
 
 export const siteConfig = {
   companyName: "NEXO NETWORK",
