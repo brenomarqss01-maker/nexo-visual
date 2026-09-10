@@ -1,0 +1,12 @@
+{
+  "name": "newbots-console-workspace",
+  "private": true,
+  "workspaces": [
+    "newbots-console-main"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=tanstack_start_ts",
+    "build": "npm run build --workspace=tanstack_start_ts",
+    "lint": "npm run lint --workspace=tanstack_start_ts"
+  }
+}
