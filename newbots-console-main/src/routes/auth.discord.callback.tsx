@@ -50,7 +50,10 @@ function DiscordCallbackPage() {
         const discordId = identity.discordId.trim();
         clearDiscordOAuthState();
         signIn(discordId);
-        await navigate({ to: discordId === ADMIN_DISCORD_ID ? "/admin" : "/login", replace: true });
+        await navigate({
+          to: discordId === ADMIN_DISCORD_ID ? "/admin" : "/painel",
+          replace: true,
+        });
       } catch (requestError) {
         setError(
           requestError instanceof Error
