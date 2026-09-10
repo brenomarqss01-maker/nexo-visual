@@ -199,6 +199,13 @@ export const REQUIRED_SYSTEMS: BotSystem[] = [
         true,
       ),
       field(
+        "canal_de_retirados_pd",
+        "Canal de Retirados (PD)",
+        "Canal dos Retirados da Facção",
+        "discord_channel",
+        true,
+      ),
+      field(
         "cargo_staff_advertencias",
         "Cargo da staff",
         "Cargo autorizado a administrar advertências.",

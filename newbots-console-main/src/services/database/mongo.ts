@@ -320,10 +320,22 @@ function mergeRequiredSystems(systems: BotSystem[]): {
 } {
   const existing = new Map(systems.map((system) => [system.id, system]));
   const additions = REQUIRED_SYSTEMS.filter((required) => !existing.has(required.id));
-  const required = REQUIRED_SYSTEMS.map((system) => ({
-    ...system,
-    createdAt: existing.get(system.id)?.createdAt || system.createdAt,
-  }));
+  const required = REQUIRED_SYSTEMS.map((system) => {
+    const savedSystem = existing.get(system.id);
+    if (!savedSystem) return system;
+
+    const savedFields = Array.isArray(savedSystem.fields) ? savedSystem.fields : [];
+    const savedKeys = new Set(savedFields.map((field) => field.key));
+    const missingRequiredFields = system.fields.filter((field) => !savedKeys.has(field.key));
+
+    return {
+      ...system,
+      ...savedSystem,
+      id: system.id,
+      createdAt: savedSystem.createdAt || system.createdAt,
+      fields: [...savedFields, ...missingRequiredFields],
+    };
+  });
   const custom = systems.filter(
     (system) => !REQUIRED_SYSTEMS.some((requiredSystem) => requiredSystem.id === system.id),
   );
