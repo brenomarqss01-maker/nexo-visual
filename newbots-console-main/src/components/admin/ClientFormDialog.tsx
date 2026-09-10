@@ -60,6 +60,10 @@ export function ClientFormDialog({
     const clientForGuild = db.clients.find(
       (item) => item.guildId === normalizedGuildId && item.id !== client?.id,
     );
+    if (editing && clientForGuild) {
+      toast.error("Este ID de servidor já está vinculado a outro cliente.");
+      return;
+    }
     if (!editing && clientForGuild && clientForGuild.discordId !== discordId.trim()) {
       toast.error("Este ID de servidor já está cadastrado para outro cliente.");
       return;

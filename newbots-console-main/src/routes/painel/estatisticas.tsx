@@ -154,7 +154,7 @@ function OrganizationStatistics() {
     const refresh = async () => {
       try {
         const current = await getOrganizationStatistics({
-          data: { guildId: selectedGuildId, discordId },
+          data: { guildId: selectedGuildId },
         });
         if (!active) return;
         setLiveStatistics(current);
@@ -206,7 +206,7 @@ function OrganizationStatistics() {
     setResetting(true);
     try {
       const current = await resetOrganizationStatistics({
-        data: { guildId: selectedClient.guildId, discordId, scope: resetScope },
+        data: { guildId: selectedClient.guildId, scope: resetScope },
       });
       setLiveStatistics(current);
       resetOrganizationStats(selectedClient.guildId, resetScope);

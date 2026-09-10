@@ -4,22 +4,26 @@ import {
   loadOrganizationStatisticsForViewer,
   resetOrganizationStatisticsForViewer,
 } from "@/services/database/mongo";
+import { requireAuthenticatedDiscordId } from "@/services/auth/discordSession";
 
-const viewerSchema = z.object({
+const guildSchema = z.object({
   guildId: z.string().regex(/^\d{15,22}$/, "ID do servidor inválido."),
-  discordId: z.string().regex(/^\d{15,22}$/, "ID do Discord inválido."),
 });
 
-const resetSchema = viewerSchema.extend({
+const resetSchema = guildSchema.extend({
   scope: z.enum(["all", "recruitments", "sales"]),
 });
 
 export const getOrganizationStatistics = createServerFn({ method: "POST" })
-  .validator(viewerSchema)
-  .handler(({ data }) => loadOrganizationStatisticsForViewer(data.guildId, data.discordId));
+  .validator(guildSchema)
+  .handler(async ({ data }) => {
+    const discordId = await requireAuthenticatedDiscordId();
+    return loadOrganizationStatisticsForViewer(data.guildId, discordId);
+  });
 
 export const resetOrganizationStatistics = createServerFn({ method: "POST" })
   .validator(resetSchema)
-  .handler(({ data }) =>
-    resetOrganizationStatisticsForViewer(data.guildId, data.discordId, data.scope),
-  );
+  .handler(async ({ data }) => {
+    const discordId = await requireAuthenticatedDiscordId();
+    return resetOrganizationStatisticsForViewer(data.guildId, discordId, data.scope);
+  });

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { discordOAuthConfig } from "@/config/site";
+import { saveAuthenticatedDiscordId } from "@/services/auth/discordSession";
 
 const callbackSchema = z.object({
   code: z.string().min(1),
@@ -61,6 +62,7 @@ export const exchangeDiscordAuthorizationCode = createServerFn({ method: "POST" 
     }
 
     const user = (await userResponse.json()) as DiscordUserResponse;
+    await saveAuthenticatedDiscordId(user.id);
     return {
       discordId: user.id,
       username: user.global_name || user.username,

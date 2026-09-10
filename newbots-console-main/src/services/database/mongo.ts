@@ -269,8 +269,18 @@ export async function saveClientBotCredential(input: {
   token: string;
 }): Promise<void> {
   const database = await getMongoDatabase();
+  const collection = database.collection<BotCredentialDocument>(BOT_CREDENTIALS_COLLECTION);
+  const conflictingCredential = await collection.findOne({
+    guildId: input.guildId,
+    managedBy: MANAGED_BY,
+    _id: { $ne: input.clientId },
+  });
+  if (conflictingCredential) {
+    throw new Error("Este servidor Discord já está vinculado ao bot de outro cliente.");
+  }
+
   const encrypted = encryptBotToken(input.token);
-  await database.collection<BotCredentialDocument>(BOT_CREDENTIALS_COLLECTION).replaceOne(
+  await collection.replaceOne(
     { _id: input.clientId },
     {
       clientId: input.clientId,

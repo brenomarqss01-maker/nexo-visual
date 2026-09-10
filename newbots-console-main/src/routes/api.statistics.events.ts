@@ -25,6 +25,13 @@ const organizationEventSchema = z
     occurredAt: z.string().datetime({ offset: true }).optional(),
   })
   .superRefine((event, context) => {
+    if (event.type === "recruitment" && !event.recruited) {
+      context.addIssue({
+        code: "custom",
+        path: ["recruited"],
+        message: "Membro recrutado é obrigatório para eventos de recrutamento.",
+      });
+    }
     if (event.type === "sale" && !event.product) {
       context.addIssue({
         code: "custom",
