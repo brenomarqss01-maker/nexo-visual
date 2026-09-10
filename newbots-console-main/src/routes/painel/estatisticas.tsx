@@ -8,7 +8,7 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/auth/session";
 import { EmptyState, PageHeader } from "@/components/ui-kit/primitives";
@@ -16,6 +16,10 @@ import { useData, type OrganizationStatsReset } from "@/data/store";
 import type { OrganizationMemberStat, OrganizationStats, ProductSalesStat } from "@/data/types";
 import { isExpired } from "@/lib/dates";
 import { Button } from "@/components/ui/button";
+import {
+  getOrganizationStatistics,
+  resetOrganizationStatistics,
+} from "@/services/statistics/statistics.functions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -116,10 +120,13 @@ function LeaderCard({
 
 function OrganizationStatistics() {
   const { db, resetOrganizationStats } = useData();
-  const { clients } = useAuth();
+  const { clients, discordId } = useAuth();
   const { clientId } = Route.useSearch();
   const navigate = useNavigate();
   const [resetScope, setResetScope] = useState<OrganizationStatsReset | null>(null);
+  const [liveStatistics, setLiveStatistics] = useState<OrganizationStats | undefined>();
+  const [statisticsError, setStatisticsError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   const eligibleClients = useMemo(
     () =>
@@ -136,8 +143,42 @@ function OrganizationStatistics() {
 
   const selectedClient =
     eligibleClients.find((client) => client.id === clientId) ?? eligibleClients[0];
+  const selectedGuildId = selectedClient?.guildId;
+
+  useEffect(() => {
+    if (!selectedGuildId || !discordId) {
+      setLiveStatistics(undefined);
+      return;
+    }
+    let active = true;
+    const refresh = async () => {
+      try {
+        const current = await getOrganizationStatistics({
+          data: { guildId: selectedGuildId, discordId },
+        });
+        if (!active) return;
+        setLiveStatistics(current);
+        setStatisticsError(null);
+      } catch (error) {
+        if (!active) return;
+        setStatisticsError(
+          error instanceof Error ? error.message : "Não foi possível atualizar as estatísticas.",
+        );
+      }
+    };
+    setLiveStatistics(undefined);
+    void refresh();
+    const interval = window.setInterval(() => void refresh(), 15_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [selectedGuildId, discordId]);
+
   const statistics = selectedClient
-    ? ((db.organizationStats ?? []).find((item) => item.guildId === selectedClient.guildId) ??
+    ? ((liveStatistics?.guildId === selectedClient.guildId
+        ? liveStatistics
+        : (db.organizationStats ?? []).find((item) => item.guildId === selectedClient.guildId)) ??
       emptyStats(selectedClient.guildId))
     : undefined;
   const product = statistics ? topProduct(statistics.products) : undefined;
@@ -160,11 +201,26 @@ function OrganizationStatistics() {
     },
   };
 
-  const confirmReset = () => {
-    if (!resetScope || !selectedClient) return;
-    resetOrganizationStats(selectedClient.guildId, resetScope);
-    toast.success("Estatísticas limpas com sucesso.");
-    setResetScope(null);
+  const confirmReset = async () => {
+    if (!resetScope || !selectedClient || !discordId) return;
+    setResetting(true);
+    try {
+      const current = await resetOrganizationStatistics({
+        data: { guildId: selectedClient.guildId, discordId, scope: resetScope },
+      });
+      setLiveStatistics(current);
+      resetOrganizationStats(selectedClient.guildId, resetScope);
+      setStatisticsError(null);
+      toast.success("Estatísticas limpas com sucesso.");
+      setResetScope(null);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Não foi possível limpar as estatísticas.";
+      setStatisticsError(message);
+      toast.error(message);
+    } finally {
+      setResetting(false);
+    }
   };
 
   if (!selectedClient || !statistics) {
@@ -274,6 +330,7 @@ function OrganizationStatistics() {
               }).format(new Date(statistics.updatedAt))}.`
             : "Os bots ainda não enviaram eventos para este servidor. Assim que um recrutamento ou venda for registrado, os indicadores aparecerão aqui."}
         </p>
+        {statisticsError && <p className="mt-2 text-sm text-destructive">{statisticsError}</p>}
       </div>
 
       <div className="panel p-5">
@@ -314,9 +371,10 @@ function OrganizationStatistics() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-danger text-white hover:bg-danger/90"
-              onClick={confirmReset}
+              disabled={resetting}
+              onClick={() => void confirmReset()}
             >
-              Confirmar limpeza
+              {resetting ? "Limpando..." : "Confirmar limpeza"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

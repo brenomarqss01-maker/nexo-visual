@@ -27,6 +27,7 @@ import { Route as AdminClientesClientIdRouteImport } from './routes/admin/client
 import { Route as AdminSistemasIndexRouteImport } from './routes/admin/sistemas/index'
 import { Route as AdminSistemasSystemIdRouteImport } from './routes/admin/sistemas/$systemId'
 import { Route as AdminSistemasNovoRouteImport } from './routes/admin/sistemas/novo'
+import { Route as ApiStatisticsEventsRouteImport } from './routes/api.statistics.events'
 import { Route as AuthDiscordCallbackRouteImport } from './routes/auth.discord.callback'
 import { Route as PainelSistemasSystemIdRouteImport } from './routes/painel/sistemas.$systemId'
 
@@ -120,6 +121,11 @@ const AdminSistemasNovoRoute = AdminSistemasNovoRouteImport.update({
   path: '/sistemas/novo',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const ApiStatisticsEventsRoute = ApiStatisticsEventsRouteImport.update({
+  id: '/api/statistics/events',
+  path: '/api/statistics/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthDiscordCallbackRoute = AuthDiscordCallbackRouteImport.update({
   id: '/auth/discord/callback',
   path: '/auth/discord/callback',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/admin/clientes/$clientId': typeof AdminClientesClientIdRoute
   '/admin/sistemas/$systemId': typeof AdminSistemasSystemIdRoute
   '/admin/sistemas/novo': typeof AdminSistemasNovoRoute
+  '/api/statistics/events': typeof ApiStatisticsEventsRoute
   '/auth/discord/callback': typeof AuthDiscordCallbackRoute
   '/painel/sistemas/$systemId': typeof PainelSistemasSystemIdRoute
   '/admin/clientes/': typeof AdminClientesIndexRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByTo {
   '/admin/clientes/$clientId': typeof AdminClientesClientIdRoute
   '/admin/sistemas/$systemId': typeof AdminSistemasSystemIdRoute
   '/admin/sistemas/novo': typeof AdminSistemasNovoRoute
+  '/api/statistics/events': typeof ApiStatisticsEventsRoute
   '/auth/discord/callback': typeof AuthDiscordCallbackRoute
   '/painel/sistemas/$systemId': typeof PainelSistemasSystemIdRoute
   '/admin/clientes': typeof AdminClientesIndexRoute
@@ -191,6 +199,7 @@ export interface FileRoutesById {
   '/admin/clientes/$clientId': typeof AdminClientesClientIdRoute
   '/admin/sistemas/$systemId': typeof AdminSistemasSystemIdRoute
   '/admin/sistemas/novo': typeof AdminSistemasNovoRoute
+  '/api/statistics/events': typeof ApiStatisticsEventsRoute
   '/auth/discord/callback': typeof AuthDiscordCallbackRoute
   '/painel/sistemas/$systemId': typeof PainelSistemasSystemIdRoute
   '/admin/clientes/': typeof AdminClientesIndexRoute
@@ -215,6 +224,7 @@ export interface FileRouteTypes {
     | '/admin/clientes/$clientId'
     | '/admin/sistemas/$systemId'
     | '/admin/sistemas/novo'
+    | '/api/statistics/events'
     | '/auth/discord/callback'
     | '/painel/sistemas/$systemId'
     | '/admin/clientes/'
@@ -235,6 +245,7 @@ export interface FileRouteTypes {
     | '/admin/clientes/$clientId'
     | '/admin/sistemas/$systemId'
     | '/admin/sistemas/novo'
+    | '/api/statistics/events'
     | '/auth/discord/callback'
     | '/painel/sistemas/$systemId'
     | '/admin/clientes'
@@ -257,6 +268,7 @@ export interface FileRouteTypes {
     | '/admin/clientes/$clientId'
     | '/admin/sistemas/$systemId'
     | '/admin/sistemas/novo'
+    | '/api/statistics/events'
     | '/auth/discord/callback'
     | '/painel/sistemas/$systemId'
     | '/admin/clientes/'
@@ -270,6 +282,7 @@ export interface RootRouteChildren {
   ClientRoute: typeof ClientRoute
   LoginRoute: typeof LoginRoute
   NoProductsRoute: typeof NoProductsRoute
+  ApiStatisticsEventsRoute: typeof ApiStatisticsEventsRoute
   AuthDiscordCallbackRoute: typeof AuthDiscordCallbackRoute
 }
 
@@ -401,6 +414,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSistemasNovoRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/api/statistics/events': {
+      id: '/api/statistics/events'
+      path: '/api/statistics/events'
+      fullPath: '/api/statistics/events'
+      preLoaderRoute: typeof ApiStatisticsEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/discord/callback': {
       id: '/auth/discord/callback'
       path: '/auth/discord/callback'
@@ -471,6 +491,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientRoute: ClientRoute,
   LoginRoute: LoginRoute,
   NoProductsRoute: NoProductsRoute,
+  ApiStatisticsEventsRoute: ApiStatisticsEventsRoute,
   AuthDiscordCallbackRoute: AuthDiscordCallbackRoute,
 }
 export const routeTree = rootRouteImport

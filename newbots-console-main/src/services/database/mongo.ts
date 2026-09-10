@@ -1,5 +1,11 @@
 import { config as loadEnvironment } from "dotenv";
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+  timingSafeEqual,
+} from "node:crypto";
 import mongoose, { type Connection } from "mongoose";
 import type { Db, Document } from "mongodb";
 import { createEmptyDatabase } from "@/data/seed";
@@ -13,7 +19,9 @@ import type {
   Database,
   License,
   LogEntry,
+  OrganizationMemberStat,
   OrganizationStats,
+  ProductSalesStat,
   Settings,
   SystemConfig,
   SystemField,
@@ -24,9 +32,17 @@ loadEnvironment({ override: false, quiet: true });
 
 const STATE_COLLECTION = "application_state";
 const BOT_CREDENTIALS_COLLECTION = "bot_credentials";
+const ORGANIZATION_EVENTS_COLLECTION = "estatisticas_eventos";
 const STATE_ID = "primary";
 const MANAGED_BY = "nexo-network-panel";
-const COLLECTIONS = ["usuarios", "clientes", "servidores", "configuracoes_bot", "logs"] as const;
+const COLLECTIONS = [
+  "usuarios",
+  "clientes",
+  "servidores",
+  "configuracoes_bot",
+  "logs",
+  ORGANIZATION_EVENTS_COLLECTION,
+] as const;
 
 type RawRecord = Record<string, unknown>;
 type ApplicationStateDocument = {
@@ -48,6 +64,48 @@ type BotCredentialDocument = {
   updatedAt: Date;
 };
 
+type ManagedCollectionDocument = {
+  _id: string;
+  managedBy: string;
+  entityType: string;
+  document: unknown;
+  updatedAt: Date;
+};
+
+export type OrganizationEventInput = {
+  eventId: string;
+  guildId: string;
+  type: "recruitment" | "sale";
+  actor: {
+    discordId: string;
+    name: string;
+  };
+  recruited?:
+    | {
+        discordId: string;
+        name: string;
+      }
+    | undefined;
+  product?:
+    | {
+        id: string;
+        name: string;
+      }
+    | undefined;
+  quantity: number;
+  revenue: number;
+  occurredAt?: string | undefined;
+};
+
+type OrganizationEventDocument = OrganizationEventInput & {
+  _id: string;
+  managedBy: string;
+  recordedAt: Date;
+  occurredAt: string;
+};
+
+export class StatisticsAuthorizationError extends Error {}
+
 let databasePromise: Promise<Db> | undefined;
 let activeConnection: Connection | undefined;
 
@@ -67,8 +125,8 @@ function asString(value: unknown, fallback = ""): string {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "bigint") return String(value);
   if (value instanceof Date) return value.toISOString();
-  if (isRecord(value) && typeof value.toHexString === "function") {
-    return String(value.toHexString());
+  if (isRecord(value) && typeof value["toHexString"] === "function") {
+    return String(value["toHexString"]());
   }
   return fallback;
 }
@@ -131,15 +189,15 @@ async function getMongoDatabase(): Promise<Db> {
   if (databasePromise) return databasePromise;
 
   databasePromise = (async () => {
-    const uri = process.env.MONGODB_URI?.trim();
+    const uri = process.env["MONGODB_URI"]?.trim();
     if (!uri) throw new Error("MONGODB_URI não está configurada no servidor.");
 
     const connection = mongoose.createConnection(uri, { maxPoolSize: 1 });
 
     try {
       await connection.asPromise();
-      const configuredName = process.env.MONGODB_DATABASE?.trim();
-      const database = connection.client.db(configuredName || getDatabaseName(uri));
+      const configuredName = process.env["MONGODB_DATABASE"]?.trim();
+      const database = connection.getClient().db(configuredName || getDatabaseName(uri));
       await database.command({ ping: 1 });
       await inspectCollections(database);
       activeConnection = connection;
@@ -215,7 +273,6 @@ export async function saveClientBotCredential(input: {
   await database.collection<BotCredentialDocument>(BOT_CREDENTIALS_COLLECTION).replaceOne(
     { _id: input.clientId },
     {
-      _id: input.clientId,
       clientId: input.clientId,
       guildId: input.guildId,
       botId: input.botId,
@@ -267,23 +324,23 @@ function normalizeCanonicalDatabase(value: unknown): { database: Database; chang
   const initial = createEmptyDatabase();
   if (!isRecord(value)) return { database: initial, changed: true };
 
-  const clients = Array.isArray(value.clients) ? (value.clients as Client[]) : [];
-  const systems = Array.isArray(value.systems) ? (value.systems as BotSystem[]) : [];
-  const licenses = Array.isArray(value.licenses) ? (value.licenses as License[]) : [];
-  const users = Array.isArray(value.users) ? (value.users as AppUser[]) : initial.users;
-  const logs = Array.isArray(value.logs) ? (value.logs as LogEntry[]) : [];
-  const organizationStats = Array.isArray(value.organizationStats)
-    ? (value.organizationStats as OrganizationStats[])
+  const clients = Array.isArray(value["clients"]) ? (value["clients"] as Client[]) : [];
+  const systems = Array.isArray(value["systems"]) ? (value["systems"] as BotSystem[]) : [];
+  const licenses = Array.isArray(value["licenses"]) ? (value["licenses"] as License[]) : [];
+  const users = Array.isArray(value["users"]) ? (value["users"] as AppUser[]) : initial.users;
+  const logs = Array.isArray(value["logs"]) ? (value["logs"] as LogEntry[]) : [];
+  const organizationStats = Array.isArray(value["organizationStats"])
+    ? (value["organizationStats"] as OrganizationStats[])
     : [];
-  const settings = isRecord(value.settings)
-    ? ({ ...initial.settings, ...value.settings } as Settings)
+  const settings = isRecord(value["settings"])
+    ? ({ ...initial.settings, ...value["settings"] } as Settings)
     : initial.settings;
   const guildIdsByClient = new Map(clients.map((client) => [client.id, client.guildId]));
   let changed =
-    !Array.isArray(value.organizationStats) ||
-    !Array.isArray(value.users) ||
-    !isRecord(value.settings);
-  const configs = (Array.isArray(value.configs) ? (value.configs as ConfigRecord[]) : []).map(
+    !Array.isArray(value["organizationStats"]) ||
+    !Array.isArray(value["users"]) ||
+    !isRecord(value["settings"]);
+  const configs = (Array.isArray(value["configs"]) ? (value["configs"] as ConfigRecord[]) : []).map(
     (config) => {
       if (config.guildId) return config;
       const guildId = guildIdsByClient.get(config.clientId);
@@ -379,8 +436,8 @@ function normalizeField(value: unknown, fallbackId: string): SystemField | null 
     label: asString(valueAt(value, "label", "descricao", "description"), key),
     type: (validTypes.has(rawType) ? rawType : "text") as SystemField["type"],
     required: Boolean(valueAt(value, "required", "obrigatorio")),
-    ...(Array.isArray(value.options)
-      ? { options: value.options.map((option) => asString(option)).filter(Boolean) }
+    ...(Array.isArray(value["options"])
+      ? { options: value["options"].map((option) => asString(option)).filter(Boolean) }
       : {}),
   };
 }
@@ -559,13 +616,249 @@ async function recoverFromNamedCollections(database: Db): Promise<Database> {
   }).database;
 }
 
+function emptyOrganizationStats(guildId: string): OrganizationStats {
+  return {
+    guildId,
+    recruitmentsTotal: 0,
+    salesTotal: 0,
+    organizationRevenue: 0,
+    products: [],
+    recruiters: [],
+    sellers: [],
+    updatedAt: "",
+  };
+}
+
+function calculateOrganizationStats(
+  guildId: string,
+  events: OrganizationEventDocument[],
+): OrganizationStats {
+  const statistics = emptyOrganizationStats(guildId);
+  const products = new Map<string, ProductSalesStat>();
+  const recruiters = new Map<string, OrganizationMemberStat>();
+  const sellers = new Map<string, OrganizationMemberStat>();
+  let latestUpdate = 0;
+
+  for (const event of events) {
+    const quantity = Math.max(1, Math.trunc(event.quantity));
+    const recordedAt = event.recordedAt.getTime();
+    if (recordedAt > latestUpdate) latestUpdate = recordedAt;
+
+    if (event.type === "recruitment") {
+      statistics.recruitmentsTotal += quantity;
+      const current = recruiters.get(event.actor.discordId) ?? {
+        discordId: event.actor.discordId,
+        name: event.actor.name,
+        count: 0,
+        revenue: 0,
+      };
+      current.name = event.actor.name;
+      current.count += quantity;
+      recruiters.set(current.discordId, current);
+      continue;
+    }
+
+    statistics.salesTotal += quantity;
+    statistics.organizationRevenue += event.revenue;
+    const seller = sellers.get(event.actor.discordId) ?? {
+      discordId: event.actor.discordId,
+      name: event.actor.name,
+      count: 0,
+      revenue: 0,
+    };
+    seller.name = event.actor.name;
+    seller.count += quantity;
+    seller.revenue += event.revenue;
+    sellers.set(seller.discordId, seller);
+
+    if (event.product) {
+      const product = products.get(event.product.id) ?? {
+        productId: event.product.id,
+        name: event.product.name,
+        quantity: 0,
+        revenue: 0,
+      };
+      product.name = event.product.name;
+      product.quantity += quantity;
+      product.revenue += event.revenue;
+      products.set(product.productId, product);
+    }
+  }
+
+  statistics.products = [...products.values()].sort(
+    (left, right) => right.quantity - left.quantity || right.revenue - left.revenue,
+  );
+  statistics.recruiters = [...recruiters.values()].sort((left, right) => right.count - left.count);
+  statistics.sellers = [...sellers.values()].sort(
+    (left, right) => right.count - left.count || right.revenue - left.revenue,
+  );
+  statistics.organizationRevenue = Number(statistics.organizationRevenue.toFixed(2));
+  statistics.updatedAt = latestUpdate ? new Date(latestUpdate).toISOString() : "";
+  return statistics;
+}
+
+async function readCanonicalDatabase(database: Db): Promise<Database> {
+  const stored = await database
+    .collection<ApplicationStateDocument>(STATE_COLLECTION)
+    .findOne({ _id: STATE_ID });
+  return stored?.database
+    ? normalizeCanonicalDatabase(stored.database).database
+    : recoverFromNamedCollections(database);
+}
+
+async function loadOrganizationStatistics(
+  database: Db,
+  guildIds: string[],
+): Promise<OrganizationStats[]> {
+  const uniqueGuildIds = [...new Set(guildIds.filter(Boolean))];
+  if (uniqueGuildIds.length === 0) return [];
+  const events = await database
+    .collection<OrganizationEventDocument>(ORGANIZATION_EVENTS_COLLECTION)
+    .find({ guildId: { $in: uniqueGuildIds }, managedBy: MANAGED_BY })
+    .toArray();
+  const eventsByGuild = new Map<string, OrganizationEventDocument[]>();
+  for (const event of events) {
+    const current = eventsByGuild.get(event.guildId) ?? [];
+    current.push(event);
+    eventsByGuild.set(event.guildId, current);
+  }
+  return uniqueGuildIds.map((guildId) =>
+    calculateOrganizationStats(guildId, eventsByGuild.get(guildId) ?? []),
+  );
+}
+
+function tokensMatch(received: string, expected: string): boolean {
+  const receivedHash = createHash("sha256").update(received).digest();
+  const expectedHash = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(receivedHash, expectedHash);
+}
+
+function hasActiveStatisticsLicense(
+  state: Database,
+  clientId: string,
+  eventType: OrganizationEventInput["type"],
+): boolean {
+  const systemId = eventType === "recruitment" ? "base_registro_siglas" : "base_vendas";
+  const now = Date.now();
+  return state.licenses.some(
+    (license) =>
+      license.clientId === clientId &&
+      license.systemId === systemId &&
+      new Date(license.expiresAt).getTime() >= now,
+  );
+}
+
+export async function recordOrganizationEvent(
+  input: OrganizationEventInput,
+  rawBotToken: string,
+): Promise<{ duplicate: boolean; statistics: OrganizationStats }> {
+  const database = await getMongoDatabase();
+  const credential = await database
+    .collection<BotCredentialDocument>(BOT_CREDENTIALS_COLLECTION)
+    .findOne({ guildId: input.guildId, managedBy: MANAGED_BY });
+  const receivedToken = rawBotToken.trim().replace(/^Bot\s+/i, "");
+  let authenticated = false;
+  if (credential && receivedToken) {
+    try {
+      authenticated = tokensMatch(receivedToken, decryptBotToken(credential));
+    } catch {
+      authenticated = false;
+    }
+  }
+  if (!credential || !authenticated) {
+    throw new StatisticsAuthorizationError("Bot não autorizado para este servidor.");
+  }
+
+  const state = await readCanonicalDatabase(database);
+  const client = state.clients.find(
+    (item) => item.id === credential.clientId && item.guildId === input.guildId,
+  );
+  if (!client) {
+    throw new StatisticsAuthorizationError("Servidor não cadastrado para este bot.");
+  }
+  if (!hasActiveStatisticsLicense(state, client.id, input.type)) {
+    throw new StatisticsAuthorizationError(
+      "Este servidor não possui uma licença ativa para este tipo de evento.",
+    );
+  }
+
+  const now = new Date();
+  const occurredAtDate = input.occurredAt ? new Date(input.occurredAt) : now;
+  const occurredAt = Number.isNaN(occurredAtDate.getTime())
+    ? now.toISOString()
+    : occurredAtDate.toISOString();
+  const collection = database.collection<OrganizationEventDocument>(ORGANIZATION_EVENTS_COLLECTION);
+  await collection.createIndex({ guildId: 1, type: 1, recordedAt: -1 });
+  let duplicate = false;
+  try {
+    await collection.insertOne({
+      ...input,
+      _id: `${input.guildId}:${input.eventId}`,
+      occurredAt,
+      managedBy: MANAGED_BY,
+      recordedAt: now,
+    });
+  } catch (error) {
+    if (isRecord(error) && error["code"] === 11000) duplicate = true;
+    else throw error;
+  }
+  const [statistics] = await loadOrganizationStatistics(database, [input.guildId]);
+  return { duplicate, statistics: statistics ?? emptyOrganizationStats(input.guildId) };
+}
+
+function canViewGuild(state: Database, guildId: string, discordId: string): boolean {
+  const isAdministrator =
+    state.settings.adminDiscordId === discordId ||
+    state.users.some((user) => user.discordId === discordId && user.role === "admin");
+  return (
+    isAdministrator ||
+    state.clients.some((client) => client.guildId === guildId && client.discordId === discordId)
+  );
+}
+
+export async function loadOrganizationStatisticsForViewer(
+  guildId: string,
+  discordId: string,
+): Promise<OrganizationStats> {
+  const database = await getMongoDatabase();
+  const state = await readCanonicalDatabase(database);
+  if (!canViewGuild(state, guildId, discordId)) {
+    throw new StatisticsAuthorizationError("Você não possui acesso a este servidor.");
+  }
+  const [statistics] = await loadOrganizationStatistics(database, [guildId]);
+  return statistics ?? emptyOrganizationStats(guildId);
+}
+
+export async function resetOrganizationStatisticsForViewer(
+  guildId: string,
+  discordId: string,
+  scope: "all" | "recruitments" | "sales",
+): Promise<OrganizationStats> {
+  const database = await getMongoDatabase();
+  const state = await readCanonicalDatabase(database);
+  if (!canViewGuild(state, guildId, discordId)) {
+    throw new StatisticsAuthorizationError("Você não possui acesso a este servidor.");
+  }
+  await database.collection<OrganizationEventDocument>(ORGANIZATION_EVENTS_COLLECTION).deleteMany({
+    guildId,
+    managedBy: MANAGED_BY,
+    ...(scope === "recruitments"
+      ? { type: "recruitment" as const }
+      : scope === "sales"
+        ? { type: "sale" as const }
+        : {}),
+  });
+  const [statistics] = await loadOrganizationStatistics(database, [guildId]);
+  return statistics ?? emptyOrganizationStats(guildId);
+}
+
 async function syncManagedCollection(
   database: Db,
   collectionName: string,
   entityType: string,
   documents: Array<{ id: string; document: unknown }>,
 ): Promise<void> {
-  const collection = database.collection(collectionName);
+  const collection = database.collection<ManagedCollectionDocument>(collectionName);
   const ids = documents.map((item) => `nexo:${entityType}:${item.id}`);
   await collection.deleteMany({
     managedBy: MANAGED_BY,
@@ -578,7 +871,6 @@ async function syncManagedCollection(
       replaceOne: {
         filter: { _id: `nexo:${entityType}:${item.id}` },
         replacement: {
-          _id: `nexo:${entityType}:${item.id}`,
           managedBy: MANAGED_BY,
           entityType,
           document: item.document,
@@ -594,11 +886,7 @@ async function syncManagedCollection(
 async function saveDatabase(database: Db, state: Database): Promise<void> {
   await database
     .collection<ApplicationStateDocument>(STATE_COLLECTION)
-    .replaceOne(
-      { _id: STATE_ID },
-      { _id: STATE_ID, database: state, updatedAt: new Date() },
-      { upsert: true },
-    );
+    .replaceOne({ _id: STATE_ID }, { database: state, updatedAt: new Date() }, { upsert: true });
 
   const licensesByClient = new Map<string, License[]>();
   for (const license of state.licenses) {
@@ -691,6 +979,11 @@ export async function loadDatabaseFromMongo(): Promise<Database> {
     ? normalizeCanonicalDatabase(stored.database).database
     : await recoverFromNamedCollections(database);
 
+  normalized.organizationStats = await loadOrganizationStatistics(
+    database,
+    normalized.clients.map((client) => client.guildId),
+  );
+
   await saveDatabase(database, normalized);
   console.info(
     `[MongoDB] Dados recuperados: ${normalized.clients.length} clientes, ` +
@@ -700,7 +993,11 @@ export async function loadDatabaseFromMongo(): Promise<Database> {
 }
 
 export async function resetDatabaseInMongo(): Promise<Database> {
-  const database = createEmptyDatabase();
-  await saveDatabaseToMongo(database);
-  return database;
+  const database = await getMongoDatabase();
+  const emptyDatabase = createEmptyDatabase();
+  await database
+    .collection<OrganizationEventDocument>(ORGANIZATION_EVENTS_COLLECTION)
+    .deleteMany({ managedBy: MANAGED_BY });
+  await saveDatabase(database, emptyDatabase);
+  return emptyDatabase;
 }
