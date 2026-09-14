@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
-import { BarChart3, LayoutList, LifeBuoy } from "lucide-react";
+import { BarChart3, LayoutList, LifeBuoy, Palette } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useAuth } from "@/auth/session";
 import { Shell, type NavGroup } from "@/components/layout/Shell";
@@ -35,6 +35,9 @@ function ClientLayout() {
         items: [
           { to: "/painel", label: "Licenças", icon: LayoutList, exact: true },
           { to: "/painel/suporte", label: "Suporte", icon: LifeBuoy },
+          ...(clientIds.size > 0
+            ? [{ to: "/painel/personalizacao", label: "Personalização", icon: Palette }]
+            : []),
           ...(hasStatisticsAccess
             ? [{ to: "/painel/estatisticas", label: "Estatísticas", icon: BarChart3 }]
             : []),

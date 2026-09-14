@@ -26,12 +26,18 @@ import type {
   SystemConfig,
   SystemField,
 } from "@/data/types";
+import type {
+  BotCustomization,
+  BotCustomizationInput,
+  PersonalizationApplication,
+} from "@/services/personalization/personalization.types";
 
 loadEnvironment({ path: ".env.mongodb", override: true, quiet: true });
 loadEnvironment({ override: false, quiet: true });
 
 const STATE_COLLECTION = "application_state";
 const BOT_CREDENTIALS_COLLECTION = "bot_credentials";
+const BOT_CUSTOMIZATIONS_COLLECTION = "bot_customizations";
 const ORGANIZATION_EVENTS_COLLECTION = "estatisticas_eventos";
 const STATE_ID = "primary";
 const MANAGED_BY = "nexo-network-panel";
@@ -42,6 +48,7 @@ const COLLECTIONS = [
   "configuracoes_bot",
   "logs",
   ORGANIZATION_EVENTS_COLLECTION,
+  BOT_CUSTOMIZATIONS_COLLECTION,
 ] as const;
 
 type RawRecord = Record<string, unknown>;
@@ -60,6 +67,12 @@ type BotCredentialDocument = {
   encryptedToken: string;
   iv: string;
   authTag: string;
+  managedBy: string;
+  updatedAt: Date;
+};
+
+type BotCustomizationDocument = Omit<BotCustomization, "updatedAt"> & {
+  _id: string;
   managedBy: string;
   updatedAt: Date;
 };
@@ -312,6 +325,134 @@ export async function loadClientBotCredential(clientId: string): Promise<{
     botId: document.botId,
     botName: document.botName,
   };
+}
+
+function serializeBotCustomization(
+  document: BotCustomizationDocument | null,
+): BotCustomization | undefined {
+  if (!document) return undefined;
+  return {
+    clientId: document.clientId,
+    guildId: document.guildId,
+    botId: document.botId,
+    requestedName: document.requestedName,
+    accentColor: document.accentColor,
+    presenceStatus: document.presenceStatus,
+    statusMessages: document.statusMessages,
+    ...(document.avatarUrl ? { avatarUrl: document.avatarUrl } : {}),
+    ...(document.bannerUrl ? { bannerUrl: document.bannerUrl } : {}),
+    requestedBy: document.requestedBy,
+    updatedAt: document.updatedAt.toISOString(),
+  };
+}
+
+export async function loadPersonalizationApplicationsForViewer(
+  discordId: string,
+): Promise<PersonalizationApplication[]> {
+  const database = await getMongoDatabase();
+  const state = await readCanonicalDatabase(database);
+  const clients = state.clients.filter((client) => client.discordId === discordId);
+  if (clients.length === 0) return [];
+
+  const clientIds = clients.map((client) => client.id);
+  const guildIds = clients.map((client) => client.guildId);
+  const [credentials, customizations] = await Promise.all([
+    database
+      .collection<BotCredentialDocument>(BOT_CREDENTIALS_COLLECTION)
+      .find({ clientId: { $in: clientIds }, managedBy: MANAGED_BY })
+      .toArray(),
+    database
+      .collection<BotCustomizationDocument>(BOT_CUSTOMIZATIONS_COLLECTION)
+      .find({ guildId: { $in: guildIds }, managedBy: MANAGED_BY })
+      .toArray(),
+  ]);
+  const credentialByClient = new Map(credentials.map((item) => [item.clientId, item]));
+  const customizationByGuild = new Map(customizations.map((item) => [item.guildId, item]));
+
+  return clients.flatMap((client) => {
+    const credential = credentialByClient.get(client.id);
+    if (!credential || credential.guildId !== client.guildId) return [];
+    return [
+      {
+        clientId: client.id,
+        appName: client.appName,
+        guildId: client.guildId,
+        botId: credential.botId,
+        botName: credential.botName,
+        customization: serializeBotCustomization(customizationByGuild.get(client.guildId) ?? null),
+      },
+    ];
+  });
+}
+
+export async function loadPersonalizationContextForViewer(
+  clientId: string,
+  discordId: string,
+): Promise<{
+  application: PersonalizationApplication;
+  requesterName: string;
+  token: string;
+}> {
+  const database = await getMongoDatabase();
+  const state = await readCanonicalDatabase(database);
+  const client = state.clients.find((item) => item.id === clientId && item.discordId === discordId);
+  if (!client) throw new Error("Você não possui acesso a esta aplicação.");
+
+  const [credential, customization] = await Promise.all([
+    database
+      .collection<BotCredentialDocument>(BOT_CREDENTIALS_COLLECTION)
+      .findOne({ clientId, guildId: client.guildId, managedBy: MANAGED_BY }),
+    database
+      .collection<BotCustomizationDocument>(BOT_CUSTOMIZATIONS_COLLECTION)
+      .findOne({ guildId: client.guildId, managedBy: MANAGED_BY }),
+  ]);
+  if (!credential) {
+    throw new Error("Esta aplicação ainda não possui um bot Discord conectado.");
+  }
+
+  return {
+    application: {
+      clientId: client.id,
+      appName: client.appName,
+      guildId: client.guildId,
+      botId: credential.botId,
+      botName: credential.botName,
+      customization: serializeBotCustomization(customization),
+    },
+    requesterName:
+      state.users.find((user) => user.discordId === discordId)?.name ??
+      `Usuário ${discordId.slice(-4)}`,
+    token: decryptBotToken(credential),
+  };
+}
+
+export async function saveBotCustomizationForViewer(
+  input: BotCustomizationInput,
+  discordId: string,
+): Promise<BotCustomization> {
+  const database = await getMongoDatabase();
+  const context = await loadPersonalizationContextForViewer(input.clientId, discordId);
+  const now = new Date();
+  const document: BotCustomizationDocument = {
+    _id: `nexo:bot_customization:${context.application.guildId}`,
+    clientId: context.application.clientId,
+    guildId: context.application.guildId,
+    botId: context.application.botId,
+    requestedName: input.requestedName,
+    accentColor: input.accentColor,
+    presenceStatus: input.presenceStatus,
+    statusMessages: input.statusMessages,
+    ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
+    ...(input.bannerUrl ? { bannerUrl: input.bannerUrl } : {}),
+    requestedBy: discordId,
+    managedBy: MANAGED_BY,
+    updatedAt: now,
+  };
+
+  const collection = database.collection<BotCustomizationDocument>(BOT_CUSTOMIZATIONS_COLLECTION);
+  await collection.createIndex({ guildId: 1, managedBy: 1 }, { unique: true });
+  await collection.replaceOne({ _id: document._id }, document, { upsert: true });
+  return serializeBotCustomization(document)!;
 }
 
 function mergeRequiredSystems(systems: BotSystem[]): {

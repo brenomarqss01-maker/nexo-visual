@@ -19,8 +19,10 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin/configuracoes'
 import { Route as AdminLogsRouteImport } from './routes/admin/logs'
 import { Route as AdminUsuariosRouteImport } from './routes/admin/usuarios'
+import { Route as ApiPersonalizationRouteImport } from './routes/api.personalization'
 import { Route as PainelIndexRouteImport } from './routes/painel/index'
 import { Route as PainelEstatisticasRouteImport } from './routes/painel/estatisticas'
+import { Route as PainelPersonalizacaoRouteImport } from './routes/painel/personalizacao'
 import { Route as PainelSuporteRouteImport } from './routes/painel/suporte'
 import { Route as AdminClientesIndexRouteImport } from './routes/admin/clientes/index'
 import { Route as AdminClientesClientIdRouteImport } from './routes/admin/clientes/$clientId'
@@ -81,6 +83,11 @@ const AdminUsuariosRoute = AdminUsuariosRouteImport.update({
   path: '/usuarios',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const ApiPersonalizationRoute = ApiPersonalizationRouteImport.update({
+  id: '/api/personalization',
+  path: '/api/personalization',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PainelIndexRoute = PainelIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -89,6 +96,11 @@ const PainelIndexRoute = PainelIndexRouteImport.update({
 const PainelEstatisticasRoute = PainelEstatisticasRouteImport.update({
   id: '/estatisticas',
   path: '/estatisticas',
+  getParentRoute: () => PainelRouteRoute,
+} as any)
+const PainelPersonalizacaoRoute = PainelPersonalizacaoRouteImport.update({
+  id: '/personalizacao',
+  path: '/personalizacao',
   getParentRoute: () => PainelRouteRoute,
 } as any)
 const PainelSuporteRoute = PainelSuporteRouteImport.update({
@@ -147,7 +159,9 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
+  '/api/personalization': typeof ApiPersonalizationRoute
   '/painel/estatisticas': typeof PainelEstatisticasRoute
+  '/painel/personalizacao': typeof PainelPersonalizacaoRoute
   '/painel/suporte': typeof PainelSuporteRoute
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
@@ -168,7 +182,9 @@ export interface FileRoutesByTo {
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
+  '/api/personalization': typeof ApiPersonalizationRoute
   '/painel/estatisticas': typeof PainelEstatisticasRoute
+  '/painel/personalizacao': typeof PainelPersonalizacaoRoute
   '/painel/suporte': typeof PainelSuporteRoute
   '/admin': typeof AdminIndexRoute
   '/painel': typeof PainelIndexRoute
@@ -192,7 +208,9 @@ export interface FileRoutesById {
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
+  '/api/personalization': typeof ApiPersonalizationRoute
   '/painel/estatisticas': typeof PainelEstatisticasRoute
+  '/painel/personalizacao': typeof PainelPersonalizacaoRoute
   '/painel/suporte': typeof PainelSuporteRoute
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
@@ -217,7 +235,9 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/admin/logs'
     | '/admin/usuarios'
+    | '/api/personalization'
     | '/painel/estatisticas'
+    | '/painel/personalizacao'
     | '/painel/suporte'
     | '/admin/'
     | '/painel/'
@@ -238,7 +258,9 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/admin/logs'
     | '/admin/usuarios'
+    | '/api/personalization'
     | '/painel/estatisticas'
+    | '/painel/personalizacao'
     | '/painel/suporte'
     | '/admin'
     | '/painel'
@@ -261,7 +283,9 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/admin/logs'
     | '/admin/usuarios'
+    | '/api/personalization'
     | '/painel/estatisticas'
+    | '/painel/personalizacao'
     | '/painel/suporte'
     | '/admin/'
     | '/painel/'
@@ -282,6 +306,7 @@ export interface RootRouteChildren {
   ClientRoute: typeof ClientRoute
   LoginRoute: typeof LoginRoute
   NoProductsRoute: typeof NoProductsRoute
+  ApiPersonalizationRoute: typeof ApiPersonalizationRoute
   ApiStatisticsEventsRoute: typeof ApiStatisticsEventsRoute
   AuthDiscordCallbackRoute: typeof AuthDiscordCallbackRoute
 }
@@ -358,6 +383,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsuariosRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/api/personalization': {
+      id: '/api/personalization'
+      path: '/api/personalization'
+      fullPath: '/api/personalization'
+      preLoaderRoute: typeof ApiPersonalizationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/painel/': {
       id: '/painel/'
       path: '/'
@@ -370,6 +402,13 @@ declare module '@tanstack/react-router' {
       path: '/estatisticas'
       fullPath: '/painel/estatisticas'
       preLoaderRoute: typeof PainelEstatisticasRouteImport
+      parentRoute: typeof PainelRouteRoute
+    }
+    '/painel/personalizacao': {
+      id: '/painel/personalizacao'
+      path: '/personalizacao'
+      fullPath: '/painel/personalizacao'
+      preLoaderRoute: typeof PainelPersonalizacaoRouteImport
       parentRoute: typeof PainelRouteRoute
     }
     '/painel/suporte': {
@@ -468,6 +507,7 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 
 interface PainelRouteRouteChildren {
   PainelEstatisticasRoute: typeof PainelEstatisticasRoute
+  PainelPersonalizacaoRoute: typeof PainelPersonalizacaoRoute
   PainelSuporteRoute: typeof PainelSuporteRoute
   PainelIndexRoute: typeof PainelIndexRoute
   PainelSistemasSystemIdRoute: typeof PainelSistemasSystemIdRoute
@@ -475,6 +515,7 @@ interface PainelRouteRouteChildren {
 
 const PainelRouteRouteChildren: PainelRouteRouteChildren = {
   PainelEstatisticasRoute: PainelEstatisticasRoute,
+  PainelPersonalizacaoRoute: PainelPersonalizacaoRoute,
   PainelSuporteRoute: PainelSuporteRoute,
   PainelIndexRoute: PainelIndexRoute,
   PainelSistemasSystemIdRoute: PainelSistemasSystemIdRoute,
@@ -491,6 +532,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientRoute: ClientRoute,
   LoginRoute: LoginRoute,
   NoProductsRoute: NoProductsRoute,
+  ApiPersonalizationRoute: ApiPersonalizationRoute,
   ApiStatisticsEventsRoute: ApiStatisticsEventsRoute,
   AuthDiscordCallbackRoute: AuthDiscordCallbackRoute,
 }
