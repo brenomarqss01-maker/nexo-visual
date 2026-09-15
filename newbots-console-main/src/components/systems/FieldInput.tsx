@@ -21,6 +21,7 @@ const PLACEHOLDERS: Record<SystemField["type"], string> = {
   discord_id: "123456789012345678",
   discord_channel: "123456789012345678",
   discord_role: "123456789012345678",
+  discord_role_multi: "",
   discord_category: "123456789012345678",
   boolean: "",
   select: "",

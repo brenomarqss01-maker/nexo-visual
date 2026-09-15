@@ -744,15 +744,21 @@ function mergeRequiredSystems(systems: BotSystem[]): {
     if (!savedSystem) return system;
 
     const savedFields = Array.isArray(savedSystem.fields) ? savedSystem.fields : [];
-    const savedKeys = new Set(savedFields.map((field) => field.key));
-    const missingRequiredFields = system.fields.filter((field) => !savedKeys.has(field.key));
+    const requiredKeys = new Set(system.fields.map((field) => field.key));
+    const mergedRequiredFields = system.fields.map((requiredField) => {
+      const savedField = savedFields.find((field) => field.key === requiredField.key);
+      return savedField
+        ? { ...savedField, ...requiredField, id: savedField.id || requiredField.id }
+        : requiredField;
+    });
+    const customFields = savedFields.filter((field) => !requiredKeys.has(field.key));
 
     return {
       ...system,
       ...savedSystem,
       id: system.id,
       createdAt: savedSystem.createdAt || system.createdAt,
-      fields: [...savedFields, ...missingRequiredFields],
+      fields: [...mergedRequiredFields, ...customFields],
     };
   });
   const custom = systems.filter(
@@ -871,6 +877,7 @@ function normalizeField(value: unknown, fallbackId: string): SystemField | null 
     "discord_id",
     "discord_channel",
     "discord_role",
+    "discord_role_multi",
     "discord_category",
     "boolean",
     "select",
@@ -883,6 +890,9 @@ function normalizeField(value: unknown, fallbackId: string): SystemField | null 
     label: asString(valueAt(value, "label", "descricao", "description"), key),
     type: (validTypes.has(rawType) ? rawType : "text") as SystemField["type"],
     required: Boolean(valueAt(value, "required", "obrigatorio")),
+    ...(Number.isFinite(Number(value["maxSelections"]))
+      ? { maxSelections: Math.max(1, Math.trunc(Number(value["maxSelections"]))) }
+      : {}),
     ...(Array.isArray(value["options"])
       ? { options: value["options"].map((option) => asString(option)).filter(Boolean) }
       : {}),

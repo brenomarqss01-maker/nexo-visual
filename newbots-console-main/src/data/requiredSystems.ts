@@ -9,6 +9,7 @@ function field(
   label: string,
   type: FieldType,
   required = false,
+  settings: Pick<SystemField, "maxSelections"> = {},
 ): SystemField {
   return {
     id: `base_field_${++fieldSequence}`,
@@ -17,6 +18,7 @@ function field(
     label,
     type,
     required,
+    ...settings,
   };
 }
 
@@ -256,6 +258,108 @@ export const REQUIRED_SYSTEMS: BotSystem[] = [
     createdAt: CREATED_AT,
   },
   {
+    id: "base_cursos",
+    name: "Sistema de Cursos",
+    description: "Publicação de membros formados e entrega dos cargos de cada curso.",
+    fields: [
+      field(
+        "canal_cursados",
+        "Canal de cursados",
+        "Canal onde serão publicados os membros que concluíram um curso.",
+        "discord_channel",
+        true,
+      ),
+      field(
+        "cargo_realizar_cursos",
+        "Quem pode realizar cursos",
+        "Cargo autorizado a registrar a conclusão dos cursos.",
+        "discord_role",
+        true,
+      ),
+      field(
+        "cursos_json",
+        "Cursos disponíveis",
+        "Cadastre até 7 cursos, cada um com seu respectivo cargo Discord.",
+        "textarea",
+        true,
+      ),
+    ],
+    createdAt: CREATED_AT,
+  },
+  {
+    id: "base_upamento",
+    name: "Sistema de Upamento",
+    description: "Registro de membros upados e controle de quem pode executar a ação.",
+    fields: [
+      field(
+        "canal_upados",
+        "Canal de upados",
+        "Canal onde serão publicados os membros upados.",
+        "discord_channel",
+        true,
+      ),
+      field(
+        "cargo_upar",
+        "Quem pode upar",
+        "Cargo autorizado a realizar o upamento.",
+        "discord_role",
+        true,
+      ),
+    ],
+    createdAt: CREATED_AT,
+  },
+  {
+    id: "base_relatorios",
+    name: "Sistema de Relatórios",
+    description: "Tipos de relatório, responsáveis autorizados e canal de publicação.",
+    fields: [
+      field(
+        "relatorios_json",
+        "Relatórios disponíveis",
+        "Cadastre até 7 tipos de relatório.",
+        "textarea",
+        true,
+      ),
+      field(
+        "cargo_relatar",
+        "Quem pode relatar",
+        "Cargo autorizado a criar relatórios.",
+        "discord_role",
+        true,
+      ),
+      field(
+        "canal_relatorios",
+        "Canal de relatórios",
+        "Canal onde os relatórios serão publicados.",
+        "discord_channel",
+        true,
+      ),
+    ],
+    createdAt: CREATED_AT,
+  },
+  {
+    id: "base_alinhamento",
+    name: "Sistema de Alinhamento",
+    description: "Permissão e canal usados para registrar alinhamentos.",
+    fields: [
+      field(
+        "cargo_alinhar",
+        "Quem pode alinhar",
+        "Cargo autorizado a realizar alinhamentos.",
+        "discord_role",
+        true,
+      ),
+      field(
+        "canal_alinhamento",
+        "Canal de alinhamento",
+        "Canal onde os alinhamentos serão publicados.",
+        "discord_channel",
+        true,
+      ),
+    ],
+    createdAt: CREATED_AT,
+  },
+  {
     id: "base_logs_gerais",
     name: "Logs Gerais",
     description: "Boas-vindas, saídas e monitoramento de mensagens.",
@@ -303,14 +407,18 @@ export const REQUIRED_SYSTEMS: BotSystem[] = [
       field(
         "cargos_hierarquia_json",
         "Cargos da hierarquia",
-        "JSON com IDs de cargos na ordem desejada.",
-        "textarea",
+        "Selecione até 12 cargos para a hierarquia padrão.",
+        "discord_role_multi",
+        false,
+        { maxSelections: 12 },
       ),
       field(
         "cargos_hierarquia_elite_json",
         "Cargos da hierarquia elite",
-        "JSON com IDs de cargos da elite.",
-        "textarea",
+        "Selecione até 12 cargos para a hierarquia de elite.",
+        "discord_role_multi",
+        false,
+        { maxSelections: 12 },
       ),
     ],
     createdAt: CREATED_AT,

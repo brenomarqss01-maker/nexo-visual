@@ -5,7 +5,13 @@ import { toast } from "sonner";
 import { useAuth } from "@/auth/session";
 import { useData } from "@/data/store";
 import { FieldInput, type DiscordResourceOption } from "@/components/systems/FieldInput";
-import { ProductsInput, SiglasInput } from "@/components/systems/CollectionInputs";
+import {
+  CoursesInput,
+  MultiRoleInput,
+  ProductsInput,
+  ReportsInput,
+  SiglasInput,
+} from "@/components/systems/CollectionInputs";
 import { EmptyState, StatusBadge } from "@/components/ui-kit/primitives";
 import { Button } from "@/components/ui/button";
 import { expirationLabel, formatDate, isExpired } from "@/lib/dates";
@@ -72,7 +78,8 @@ function ConfigureSystem() {
       (field) =>
         field.type === "discord_channel" ||
         field.type === "discord_category" ||
-        field.type === "discord_role",
+        field.type === "discord_role" ||
+        field.type === "discord_role_multi",
     );
     if (!client || !usesDiscordResources) {
       setDiscordResources(null);
@@ -107,7 +114,7 @@ function ConfigureSystem() {
 
   const discordOptionsFor = (fieldType: string): DiscordResourceOption[] | undefined => {
     if (!discordResources) return undefined;
-    if (fieldType === "discord_role") {
+    if (fieldType === "discord_role" || fieldType === "discord_role_multi") {
       return discordResources.roles.map((role) => ({ id: role.id, label: `@${role.name}` }));
     }
     if (fieldType === "discord_category") {
@@ -208,6 +215,43 @@ function ConfigureSystem() {
                   <SiglasInput
                     value={values[field.key]}
                     disabled={expired}
+                    discordOptions={discordOptionsFor("discord_role")}
+                    discordLoading={discordLoading}
+                    discordError={discordError}
+                    onChange={(value) => {
+                      setValues((prev) => ({ ...prev, [field.key]: value }));
+                      setDirty(true);
+                    }}
+                  />
+                ) : field.key === "cursos_json" ? (
+                  <CoursesInput
+                    value={values[field.key]}
+                    disabled={expired}
+                    discordOptions={discordOptionsFor("discord_role")}
+                    discordLoading={discordLoading}
+                    discordError={discordError}
+                    onChange={(value) => {
+                      setValues((prev) => ({ ...prev, [field.key]: value }));
+                      setDirty(true);
+                    }}
+                  />
+                ) : field.key === "relatorios_json" ? (
+                  <ReportsInput
+                    value={values[field.key]}
+                    disabled={expired}
+                    onChange={(value) => {
+                      setValues((prev) => ({ ...prev, [field.key]: value }));
+                      setDirty(true);
+                    }}
+                  />
+                ) : field.type === "discord_role_multi" ? (
+                  <MultiRoleInput
+                    value={values[field.key]}
+                    disabled={expired}
+                    maxSelections={field.maxSelections ?? 12}
+                    discordOptions={discordOptionsFor(field.type)}
+                    discordLoading={discordLoading}
+                    discordError={discordError}
                     onChange={(value) => {
                       setValues((prev) => ({ ...prev, [field.key]: value }));
                       setDirty(true);

@@ -7,6 +7,7 @@ export type FieldType =
   | "discord_id"
   | "discord_channel"
   | "discord_role"
+  | "discord_role_multi"
   | "discord_category"
   | "boolean"
   | "select"
@@ -18,6 +19,7 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   discord_id: "ID Discord",
   discord_channel: "Canal Discord",
   discord_role: "Cargo Discord",
+  discord_role_multi: "Múltiplos cargos Discord",
   discord_category: "Categoria Discord",
   boolean: "Ativado / Desativado",
   select: "Select",
@@ -35,6 +37,8 @@ export interface SystemField {
   type: FieldType;
   /** Opções, apenas para type === "select" */
   options?: string[] | undefined;
+  /** Limite para campos de multisseleção. */
+  maxSelections?: number | undefined;
   required?: boolean | undefined;
 }
 
