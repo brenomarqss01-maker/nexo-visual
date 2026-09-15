@@ -125,7 +125,7 @@ function ProfileSelection() {
                 <span className="profile-card__avatar border-brand/40 bg-brand/15 text-brand">
                   <ShieldCheck className="size-7" />
                 </span>
-                <div className="mt-8 flex items-start justify-between gap-4">
+                <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="text-lg font-bold">Administração NEXO</h2>
@@ -227,7 +227,7 @@ function ApplicationProfileCard({
           )}
         </span>
 
-        <div className="mt-8 flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="truncate text-lg font-bold">{application.appName}</h2>
