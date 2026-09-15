@@ -1,7 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { discordOAuthConfig } from "@/config/site";
-import { saveAuthenticatedDiscordId } from "@/services/auth/discordSession";
+import {
+  clearAuthenticatedDiscordSession,
+  saveAuthenticatedDiscordSession,
+} from "@/services/auth/discordSession";
 
 const callbackSchema = z.object({
   code: z.string().min(1),
@@ -49,7 +52,7 @@ export const exchangeDiscordAuthorizationCode = createServerFn({ method: "POST" 
       throw new Error("O Discord recusou a autorizacao. Tente entrar novamente.");
     }
 
-    const token = (await tokenResponse.json()) as { access_token?: string };
+    const token = (await tokenResponse.json()) as { access_token?: string; expires_in?: number };
     if (!token.access_token) {
       throw new Error("O Discord nao retornou um token de acesso.");
     }
@@ -62,7 +65,11 @@ export const exchangeDiscordAuthorizationCode = createServerFn({ method: "POST" 
     }
 
     const user = (await userResponse.json()) as DiscordUserResponse;
-    await saveAuthenticatedDiscordId(user.id);
+    await saveAuthenticatedDiscordSession({
+      discordId: user.id,
+      accessToken: token.access_token,
+      expiresIn: token.expires_in ?? 604_800,
+    });
     return {
       discordId: user.id,
       username: user.global_name || user.username,
@@ -71,3 +78,8 @@ export const exchangeDiscordAuthorizationCode = createServerFn({ method: "POST" 
         : undefined,
     };
   });
+
+export const endDiscordSession = createServerFn({ method: "POST" }).handler(async () => {
+  await clearAuthenticatedDiscordSession();
+  return { ok: true };
+});

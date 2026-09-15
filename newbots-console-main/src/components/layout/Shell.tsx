@@ -69,7 +69,7 @@ function SidebarContent({ groups, onNavigate }: { groups: NavGroup[]; onNavigate
         </div>
         <button
           type="button"
-          onClick={signOut}
+          onClick={() => void signOut()}
           aria-label="Sair"
           className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
         >

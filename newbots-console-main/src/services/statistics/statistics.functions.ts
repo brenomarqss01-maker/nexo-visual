@@ -4,7 +4,7 @@ import {
   loadOrganizationStatisticsForViewer,
   resetOrganizationStatisticsForViewer,
 } from "@/services/database/mongo";
-import { requireAuthenticatedDiscordId } from "@/services/auth/discordSession";
+import { requireAuthenticatedDiscordSession } from "@/services/auth/discordSession";
 
 const guildSchema = z.object({
   guildId: z.string().regex(/^\d{15,22}$/, "ID do servidor inválido."),
@@ -17,13 +17,13 @@ const resetSchema = guildSchema.extend({
 export const getOrganizationStatistics = createServerFn({ method: "POST" })
   .validator(guildSchema)
   .handler(async ({ data }) => {
-    const discordId = await requireAuthenticatedDiscordId();
-    return loadOrganizationStatisticsForViewer(data.guildId, discordId);
+    const viewer = await requireAuthenticatedDiscordSession();
+    return loadOrganizationStatisticsForViewer(data.guildId, viewer);
   });
 
 export const resetOrganizationStatistics = createServerFn({ method: "POST" })
   .validator(resetSchema)
   .handler(async ({ data }) => {
-    const discordId = await requireAuthenticatedDiscordId();
-    return resetOrganizationStatisticsForViewer(data.guildId, discordId, data.scope);
+    const viewer = await requireAuthenticatedDiscordSession();
+    return resetOrganizationStatisticsForViewer(data.guildId, viewer, data.scope);
   });

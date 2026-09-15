@@ -5,9 +5,8 @@ import { NexoLogo } from "@/components/brand/NexoLogo";
 import { DiscordIcon } from "@/components/brand/DiscordIcon";
 import { useAuth } from "@/auth/session";
 import { useData } from "@/data/store";
-import { ADMIN_DISCORD_ID } from "@/data/seed";
 import { Button } from "@/components/ui/button";
-import { beginDiscordLogin, resolveAccess, routeForRole } from "@/services/auth/discordAuth";
+import { beginDiscordLogin } from "@/services/auth/discordAuth";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
@@ -25,18 +24,15 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { db, ready: dataReady, databaseError } = useData();
+  const { databaseError } = useData();
   const { discordId, ready } = useAuth();
   const navigate = useNavigate();
   const [loginError, setLoginError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!ready || !dataReady || !discordId || databaseError) return;
-    const client = db.clients.find((c) => c.discordId === discordId);
-    const hasLicenses = !!client && db.licenses.some((l) => l.clientId === client.id);
-    const access = resolveAccess(discordId, ADMIN_DISCORD_ID, hasLicenses);
-    void navigate({ to: routeForRole(access.role), replace: true });
-  }, [ready, dataReady, discordId, databaseError, db, navigate]);
+    if (!ready || !discordId) return;
+    void navigate({ to: "/perfis", replace: true });
+  }, [ready, discordId, navigate]);
 
   return (
     <div className="flex min-h-screen items-center justify-center px-5 py-16">

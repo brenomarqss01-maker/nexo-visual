@@ -15,6 +15,7 @@ import { Route as ClientRouteImport } from './routes/client'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as NoProductsRouteImport } from './routes/no-products'
 import { Route as PainelRouteRouteImport } from './routes/painel/route'
+import { Route as PerfisRouteImport } from './routes/perfis'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin/configuracoes'
 import { Route as AdminLogsRouteImport } from './routes/admin/logs'
@@ -61,6 +62,11 @@ const NoProductsRoute = NoProductsRouteImport.update({
 const PainelRouteRoute = PainelRouteRouteImport.update({
   id: '/painel',
   path: '/painel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfisRoute = PerfisRouteImport.update({
+  id: '/perfis',
+  path: '/perfis',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/client': typeof ClientRoute
   '/login': typeof LoginRoute
   '/no-products': typeof NoProductsRoute
+  '/perfis': typeof PerfisRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByTo {
   '/client': typeof ClientRoute
   '/login': typeof LoginRoute
   '/no-products': typeof NoProductsRoute
+  '/perfis': typeof PerfisRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/client': typeof ClientRoute
   '/login': typeof LoginRoute
   '/no-products': typeof NoProductsRoute
+  '/perfis': typeof PerfisRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
@@ -232,6 +241,7 @@ export interface FileRouteTypes {
     | '/client'
     | '/login'
     | '/no-products'
+    | '/perfis'
     | '/admin/configuracoes'
     | '/admin/logs'
     | '/admin/usuarios'
@@ -255,6 +265,7 @@ export interface FileRouteTypes {
     | '/client'
     | '/login'
     | '/no-products'
+    | '/perfis'
     | '/admin/configuracoes'
     | '/admin/logs'
     | '/admin/usuarios'
@@ -280,6 +291,7 @@ export interface FileRouteTypes {
     | '/client'
     | '/login'
     | '/no-products'
+    | '/perfis'
     | '/admin/configuracoes'
     | '/admin/logs'
     | '/admin/usuarios'
@@ -306,6 +318,7 @@ export interface RootRouteChildren {
   ClientRoute: typeof ClientRoute
   LoginRoute: typeof LoginRoute
   NoProductsRoute: typeof NoProductsRoute
+  PerfisRoute: typeof PerfisRoute
   ApiPersonalizationRoute: typeof ApiPersonalizationRoute
   ApiStatisticsEventsRoute: typeof ApiStatisticsEventsRoute
   AuthDiscordCallbackRoute: typeof AuthDiscordCallbackRoute
@@ -353,6 +366,13 @@ declare module '@tanstack/react-router' {
       path: '/painel'
       fullPath: '/painel'
       preLoaderRoute: typeof PainelRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfis': {
+      id: '/perfis'
+      path: '/perfis'
+      fullPath: '/perfis'
+      preLoaderRoute: typeof PerfisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -532,6 +552,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientRoute: ClientRoute,
   LoginRoute: LoginRoute,
   NoProductsRoute: NoProductsRoute,
+  PerfisRoute: PerfisRoute,
   ApiPersonalizationRoute: ApiPersonalizationRoute,
   ApiStatisticsEventsRoute: ApiStatisticsEventsRoute,
   AuthDiscordCallbackRoute: AuthDiscordCallbackRoute,

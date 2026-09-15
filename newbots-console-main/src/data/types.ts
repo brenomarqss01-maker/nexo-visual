@@ -54,6 +54,8 @@ export interface Client {
   discordId: string;
   /** Servidor Discord onde este bot/sistema opera. */
   guildId: string;
+  /** Cargo do servidor que também pode acessar e editar esta aplicação. */
+  accessRoleId?: string | undefined;
   createdAt: string;
 }
 

@@ -1,5 +1,10 @@
 export type BotPresenceStatus = "online" | "idle" | "dnd" | "invisible";
 
+export interface DiscordViewerAccess {
+  discordId: string;
+  accessToken?: string | undefined;
+}
+
 export interface BotCustomization {
   clientId: string;
   guildId: string;
@@ -18,8 +23,12 @@ export interface PersonalizationApplication {
   clientId: string;
   appName: string;
   guildId: string;
+  guildName: string;
+  guildIconUrl?: string | undefined;
   botId: string;
   botName: string;
+  accessMode: "owner" | "role";
+  accessRoleId?: string | undefined;
   customization?: BotCustomization | undefined;
 }
 

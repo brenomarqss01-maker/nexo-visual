@@ -206,6 +206,183 @@
   }
 }
 
+.profile-stage {
+  background:
+    radial-gradient(80% 65% at 8% 5%, oklch(0.6 0.19 262 / 14%), transparent 66%),
+    radial-gradient(60% 55% at 95% 90%, oklch(0.7 0.1 300 / 9%), transparent 70%), var(--background);
+  isolation: isolate;
+}
+
+.profile-grid {
+  background-image:
+    linear-gradient(to right, oklch(1 0 0 / 2.5%) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(1 0 0 / 2.5%) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 80% 75% at 50% 35%, black 10%, transparent 80%);
+}
+
+.profile-orb {
+  position: fixed;
+  z-index: -1;
+  width: 24rem;
+  height: 24rem;
+  border-radius: 999px;
+  opacity: 0.13;
+  filter: blur(90px);
+  pointer-events: none;
+  animation: profile-orb-drift 12s ease-in-out infinite alternate;
+}
+
+.profile-orb--one {
+  top: -12rem;
+  right: 4%;
+  background: var(--brand);
+}
+
+.profile-orb--two {
+  bottom: -14rem;
+  left: 5%;
+  background: oklch(0.7 0.1 300);
+  animation-delay: -6s;
+}
+
+.profile-heading {
+  animation: profile-heading-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.profile-card {
+  --profile-delay: 0ms;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: color-mix(in oklch, var(--surface) 92%, transparent);
+  box-shadow: var(--shadow-panel);
+  opacity: 0;
+  transform: translateY(18px) scale(0.985);
+  animation: profile-card-in 620ms cubic-bezier(0.22, 1, 0.36, 1) var(--profile-delay) forwards;
+  transition:
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms ease,
+    box-shadow 280ms ease;
+}
+
+.profile-card::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, oklch(1 0 0 / 7%) 48%, transparent 66%);
+  content: "";
+  pointer-events: none;
+  transform: translateX(-120%);
+  transition: transform 700ms ease;
+}
+
+.profile-card:hover,
+.profile-card:focus-visible {
+  border-color: color-mix(in oklch, var(--brand) 48%, var(--border));
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 6%) inset,
+    0 28px 70px -34px oklch(0.6 0.19 262 / 38%);
+  transform: translateY(-6px);
+}
+
+.profile-card:hover::after,
+.profile-card:focus-visible::after {
+  transform: translateX(120%);
+}
+
+.profile-card:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+}
+
+.profile-card__banner {
+  position: relative;
+  display: flex;
+  height: 8.5rem;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.profile-card__banner--admin {
+  background: linear-gradient(135deg, oklch(0.16 0.01 265), oklch(0.23 0.05 262)), var(--surface-2);
+}
+
+.profile-card__body {
+  position: relative;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.profile-card__avatar {
+  position: absolute;
+  top: -2.5rem;
+  left: 1.25rem;
+  display: flex;
+  width: 4.75rem;
+  height: 4.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid var(--background);
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px var(--border);
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.profile-card:hover .profile-card__avatar {
+  transform: scale(1.06) rotate(-2deg);
+}
+
+.profile-card__arrow {
+  display: flex;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 220ms ease;
+}
+
+.profile-card:hover .profile-card__arrow {
+  border-color: var(--brand);
+  background: color-mix(in oklch, var(--brand) 15%, transparent);
+  color: var(--brand);
+  transform: translateX(3px);
+}
+
+@keyframes profile-heading-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes profile-card-in {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes profile-orb-drift {
+  to {
+    transform: translate3d(-2rem, 1.5rem, 0) scale(1.08);
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   body:has(.robot-cursor),
   body:has(.robot-cursor) * {
@@ -325,5 +502,16 @@
 @media (prefers-reduced-motion: reduce) {
   .robot-cursor.is-interactive .robot-cursor__head {
     animation: none;
+  }
+
+  .profile-heading,
+  .profile-card,
+  .profile-orb {
+    animation: none;
+  }
+
+  .profile-card {
+    opacity: 1;
+    transform: none;
   }
 }

@@ -1,7 +1,8 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Bot, Check, Image as ImageIcon, Palette, Plus, Save, Trash2, Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/auth/session";
 import { EmptyState, PageHeader } from "@/components/ui-kit/primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +15,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { getPersonalizationApplications } from "@/services/personalization/personalization.functions";
 import type {
   BotCustomization,
   BotPresenceStatus,
-  PersonalizationApplication,
 } from "@/services/personalization/personalization.types";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
@@ -72,13 +71,9 @@ function useImagePreview(file: File | undefined, fallback?: string): string | un
 }
 
 function BotPersonalization() {
-  const { clientId } = Route.useSearch();
-  const navigate = useNavigate();
+  const { applications, selectedClientId, refreshApplications } = useAuth();
   const avatarInput = useRef<HTMLInputElement>(null);
   const bannerInput = useRef<HTMLInputElement>(null);
-  const [applications, setApplications] = useState<PersonalizationApplication[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [requestedName, setRequestedName] = useState("");
   const [accentColor, setAccentColor] = useState("#4f7fd6");
   const [presenceStatus, setPresenceStatus] = useState<BotPresenceStatus>("online");
@@ -87,30 +82,9 @@ function BotPersonalization() {
   const [bannerFile, setBannerFile] = useState<File>();
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-    getPersonalizationApplications()
-      .then((items) => {
-        if (!active) return;
-        setApplications(items);
-        setLoadError(null);
-      })
-      .catch((error: unknown) => {
-        if (!active) return;
-        setLoadError(
-          error instanceof Error ? error.message : "Não foi possível carregar as aplicações.",
-        );
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const selectedApplication =
-    applications.find((application) => application.clientId === clientId) ?? applications[0];
+  const selectedApplication = applications.find(
+    (application) => application.clientId === selectedClientId,
+  );
   const savedCustomization = selectedApplication?.customization;
 
   useEffect(() => {
@@ -190,13 +164,7 @@ function BotPersonalization() {
       if (!response.ok || !result.ok || !result.customization) {
         throw new Error(result.error || "Não foi possível salvar a personalização.");
       }
-      setApplications((current) =>
-        current.map((application) =>
-          application.clientId === selectedApplication.clientId
-            ? { ...application, customization: result.customization }
-            : application,
-        ),
-      );
+      await refreshApplications();
       setAvatarFile(undefined);
       setBannerFile(undefined);
       toast.success("Solicitação salva e enviada para a equipe NEXO.");
@@ -209,15 +177,6 @@ function BotPersonalization() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-8">
-        <PageHeader kicker="Sua aplicação" title="Personalização" />
-        <div className="panel h-64 animate-pulse bg-surface-2/50" />
-      </div>
-    );
-  }
-
   if (!selectedApplication) {
     return (
       <div className="space-y-8">
@@ -227,7 +186,7 @@ function BotPersonalization() {
           description="A personalização é liberada depois que uma aplicação com bot Discord for vinculada à sua conta."
         />
         <div className="panel">
-          <EmptyState>{loadError ?? "Nenhuma aplicação conectada foi encontrada."}</EmptyState>
+          <EmptyState>Nenhuma aplicação foi selecionada.</EmptyState>
         </div>
       </div>
     );
@@ -250,33 +209,6 @@ function BotPersonalization() {
           </Button>
         }
       />
-
-      {applications.length > 1 ? (
-        <div className="max-w-sm space-y-2">
-          <Label>Qual aplicação</Label>
-          <Select
-            value={selectedApplication.clientId}
-            onValueChange={(value) =>
-              void navigate({
-                to: "/painel/personalizacao",
-                search: { clientId: value },
-                replace: true,
-              })
-            }
-          >
-            <SelectTrigger className="h-11">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {applications.map((application) => (
-                <SelectItem key={application.clientId} value={application.clientId}>
-                  {application.appName} · {application.guildId}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      ) : null}
 
       <section className="panel overflow-hidden">
         <div className="grid gap-0 lg:grid-cols-[minmax(320px,0.88fr)_1.12fr]">

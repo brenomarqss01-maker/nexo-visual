@@ -65,6 +65,9 @@ function ClientDetail() {
             <p className="mt-1 font-mono text-[11px] text-muted-foreground">
               {client.discordId} · criado em {formatDate(client.createdAt)}
             </p>
+            <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+              Servidor {client.guildId} · cargo com acesso {client.accessRoleId || "não definido"}
+            </p>
           </div>
           <div className="flex gap-2">
             <Button variant="secondary" className="gap-2" onClick={() => setDialog(true)}>

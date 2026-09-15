@@ -1,6 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { loadClientBotCredential, saveClientBotCredential } from "@/services/database/mongo";
+import { ADMIN_DISCORD_ID } from "@/data/seed";
+import {
+  assertClientAccessForViewer,
+  loadClientBotCredential,
+  saveClientBotCredential,
+} from "@/services/database/mongo";
+import { requireAuthenticatedDiscordSession } from "@/services/auth/discordSession";
 
 const DISCORD_API = "https://discord.com/api/v10";
 
@@ -71,6 +77,11 @@ async function fetchDiscordBot(path: string, token: string): Promise<Response> {
 export const connectClientDiscordBot = createServerFn({ method: "POST" })
   .validator(connectBotSchema)
   .handler(async ({ data }) => {
+    const viewer = await requireAuthenticatedDiscordSession();
+    if (viewer.discordId !== ADMIN_DISCORD_ID) {
+      throw new Error("Apenas o administrador NEXO pode conectar ou trocar o token do bot.");
+    }
+
     const token = normalizeBotToken(data.token);
     const [botResponse, guildResponse] = await Promise.all([
       fetchDiscordBot("/users/@me", token),
@@ -83,6 +94,7 @@ export const connectClientDiscordBot = createServerFn({ method: "POST" })
     await saveClientBotCredential({
       clientId: data.clientId,
       guildId: data.guildId,
+      guildName: guild.name,
       botId: bot.id,
       botName: bot.global_name || bot.username,
       token,
@@ -99,6 +111,8 @@ export const connectClientDiscordBot = createServerFn({ method: "POST" })
 export const getClientDiscordResources = createServerFn({ method: "POST" })
   .validator(resourcesSchema)
   .handler(async ({ data }) => {
+    const viewer = await requireAuthenticatedDiscordSession();
+    await assertClientAccessForViewer(data.clientId, data.guildId, viewer);
     const credential = await loadClientBotCredential(data.clientId);
     if (!credential) {
       throw new Error("Este cliente ainda não possui um bot conectado.");

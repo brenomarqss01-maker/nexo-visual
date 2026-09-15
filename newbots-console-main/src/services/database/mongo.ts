@@ -29,6 +29,7 @@ import type {
 import type {
   BotCustomization,
   BotCustomizationInput,
+  DiscordViewerAccess,
   PersonalizationApplication,
 } from "@/services/personalization/personalization.types";
 
@@ -62,6 +63,7 @@ type BotCredentialDocument = {
   _id: string;
   clientId: string;
   guildId: string;
+  guildName?: string | undefined;
   botId: string;
   botName: string;
   encryptedToken: string;
@@ -277,6 +279,7 @@ function decryptBotToken(document: BotCredentialDocument): string {
 export async function saveClientBotCredential(input: {
   clientId: string;
   guildId: string;
+  guildName: string;
   botId: string;
   botName: string;
   token: string;
@@ -298,6 +301,7 @@ export async function saveClientBotCredential(input: {
     {
       clientId: input.clientId,
       guildId: input.guildId,
+      guildName: input.guildName,
       botId: input.botId,
       botName: input.botName,
       ...encrypted,
@@ -311,6 +315,7 @@ export async function saveClientBotCredential(input: {
 export async function loadClientBotCredential(clientId: string): Promise<{
   token: string;
   guildId: string;
+  guildName?: string | undefined;
   botId: string;
   botName: string;
 } | null> {
@@ -322,6 +327,7 @@ export async function loadClientBotCredential(clientId: string): Promise<{
   return {
     token: decryptBotToken(document),
     guildId: document.guildId,
+    ...(document.guildName ? { guildName: document.guildName } : {}),
     botId: document.botId,
     botName: document.botName,
   };
@@ -346,12 +352,113 @@ function serializeBotCustomization(
   };
 }
 
+const DISCORD_API = "https://discord.com/api/v10";
+
+type DiscordViewerGuild = {
+  id: string;
+  name: string;
+  icon: string | null;
+};
+
+async function fetchDiscordForViewer(path: string, accessToken: string): Promise<Response | null> {
+  let response: Response;
+  try {
+    response = await fetch(`${DISCORD_API}${path}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch {
+    throw new Error("Não foi possível validar seus servidores no Discord.");
+  }
+  if (response.ok) return response;
+  if (response.status === 404) return null;
+  if (response.status === 401 || response.status === 403) {
+    throw new Error(
+      "O Discord não autorizou a leitura dos seus cargos. Saia e entre novamente no painel.",
+    );
+  }
+  if (response.status === 429) {
+    throw new Error("O Discord limitou a validação dos cargos. Aguarde e tente novamente.");
+  }
+  throw new Error(`Não foi possível validar seu acesso no Discord (HTTP ${response.status}).`);
+}
+
+async function loadViewerGuilds(accessToken?: string): Promise<Map<string, DiscordViewerGuild>> {
+  if (!accessToken) return new Map();
+  const response = await fetchDiscordForViewer("/users/@me/guilds", accessToken);
+  if (!response) return new Map();
+  const guilds = (await response.json()) as DiscordViewerGuild[];
+  return new Map(guilds.map((guild) => [guild.id, guild]));
+}
+
+async function viewerCanAccessClient(
+  client: Client,
+  viewer: DiscordViewerAccess,
+): Promise<boolean> {
+  if (client.discordId === viewer.discordId) return true;
+  if (!client.accessRoleId || !viewer.accessToken) return false;
+  const response = await fetchDiscordForViewer(
+    `/users/@me/guilds/${client.guildId}/member`,
+    viewer.accessToken,
+  );
+  if (!response) return false;
+  const member = (await response.json()) as { roles?: string[] | undefined };
+  return (
+    client.accessRoleId === client.guildId || Boolean(member.roles?.includes(client.accessRoleId))
+  );
+}
+
+export async function assertClientAccessForViewer(
+  clientId: string,
+  guildId: string,
+  viewer: DiscordViewerAccess,
+): Promise<Client> {
+  const database = await getMongoDatabase();
+  const state = await readCanonicalDatabase(database);
+  const client = state.clients.find((item) => item.id === clientId && item.guildId === guildId);
+  if (!client || !(await viewerCanAccessClient(client, viewer))) {
+    throw new Error("Você não possui acesso a esta aplicação.");
+  }
+  return client;
+}
+
 export async function loadPersonalizationApplicationsForViewer(
-  discordId: string,
+  viewer: DiscordViewerAccess,
 ): Promise<PersonalizationApplication[]> {
   const database = await getMongoDatabase();
   const state = await readCanonicalDatabase(database);
-  const clients = state.clients.filter((client) => client.discordId === discordId);
+  const viewerGuilds = await loadViewerGuilds(viewer.accessToken);
+  const candidates = state.clients.filter(
+    (client) =>
+      client.discordId === viewer.discordId ||
+      (Boolean(client.accessRoleId) && viewerGuilds.has(client.guildId)),
+  );
+  if (candidates.length === 0) {
+    if (!viewer.accessToken && state.clients.some((client) => Boolean(client.accessRoleId))) {
+      throw new Error(
+        "Para validar seus cargos, saia e entre novamente no painel autorizando o acesso aos servidores do Discord.",
+      );
+    }
+    return [];
+  }
+
+  const hasOwnedApplication = candidates.some((client) => client.discordId === viewer.discordId);
+  const hasRoleApplication = candidates.some(
+    (client) => client.discordId !== viewer.discordId && Boolean(client.accessRoleId),
+  );
+  if (!viewer.accessToken && !hasOwnedApplication && hasRoleApplication) {
+    throw new Error(
+      "Para validar seus cargos, saia e entre novamente no painel autorizando o acesso aos servidores do Discord.",
+    );
+  }
+
+  const accessResults = await Promise.all(
+    candidates.map(async (client) => ({
+      client,
+      allowed: await viewerCanAccessClient(client, viewer),
+    })),
+  );
+  const clients = accessResults.filter((item) => item.allowed).map((item) => item.client);
   if (clients.length === 0) return [];
 
   const clientIds = clients.map((client) => client.id);
@@ -372,13 +479,22 @@ export async function loadPersonalizationApplicationsForViewer(
   return clients.flatMap((client) => {
     const credential = credentialByClient.get(client.id);
     if (!credential || credential.guildId !== client.guildId) return [];
+    const viewerGuild = viewerGuilds.get(client.guildId);
     return [
       {
         clientId: client.id,
         appName: client.appName,
         guildId: client.guildId,
+        guildName: viewerGuild?.name || credential.guildName || client.appName,
+        ...(viewerGuild?.icon
+          ? {
+              guildIconUrl: `https://cdn.discordapp.com/icons/${client.guildId}/${viewerGuild.icon}.png?size=128`,
+            }
+          : {}),
         botId: credential.botId,
         botName: credential.botName,
+        accessMode: client.discordId === viewer.discordId ? "owner" : "role",
+        ...(client.accessRoleId ? { accessRoleId: client.accessRoleId } : {}),
         customization: serializeBotCustomization(customizationByGuild.get(client.guildId) ?? null),
       },
     ];
@@ -387,7 +503,7 @@ export async function loadPersonalizationApplicationsForViewer(
 
 export async function loadPersonalizationContextForViewer(
   clientId: string,
-  discordId: string,
+  viewer: DiscordViewerAccess,
 ): Promise<{
   application: PersonalizationApplication;
   requesterName: string;
@@ -395,8 +511,10 @@ export async function loadPersonalizationContextForViewer(
 }> {
   const database = await getMongoDatabase();
   const state = await readCanonicalDatabase(database);
-  const client = state.clients.find((item) => item.id === clientId && item.discordId === discordId);
-  if (!client) throw new Error("Você não possui acesso a esta aplicação.");
+  const client = state.clients.find((item) => item.id === clientId);
+  if (!client || !(await viewerCanAccessClient(client, viewer))) {
+    throw new Error("Você não possui acesso a esta aplicação.");
+  }
 
   const [credential, customization] = await Promise.all([
     database
@@ -415,23 +533,26 @@ export async function loadPersonalizationContextForViewer(
       clientId: client.id,
       appName: client.appName,
       guildId: client.guildId,
+      guildName: credential.guildName || client.appName,
       botId: credential.botId,
       botName: credential.botName,
+      accessMode: client.discordId === viewer.discordId ? "owner" : "role",
+      ...(client.accessRoleId ? { accessRoleId: client.accessRoleId } : {}),
       customization: serializeBotCustomization(customization),
     },
     requesterName:
-      state.users.find((user) => user.discordId === discordId)?.name ??
-      `Usuário ${discordId.slice(-4)}`,
+      state.users.find((user) => user.discordId === viewer.discordId)?.name ??
+      `Usuário ${viewer.discordId.slice(-4)}`,
     token: decryptBotToken(credential),
   };
 }
 
 export async function saveBotCustomizationForViewer(
   input: BotCustomizationInput,
-  discordId: string,
+  viewer: DiscordViewerAccess,
 ): Promise<BotCustomization> {
   const database = await getMongoDatabase();
-  const context = await loadPersonalizationContextForViewer(input.clientId, discordId);
+  const context = await loadPersonalizationContextForViewer(input.clientId, viewer);
   const now = new Date();
   const document: BotCustomizationDocument = {
     _id: `nexo:bot_customization:${context.application.guildId}`,
@@ -444,7 +565,7 @@ export async function saveBotCustomizationForViewer(
     statusMessages: input.statusMessages,
     ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
     ...(input.bannerUrl ? { bannerUrl: input.bannerUrl } : {}),
-    requestedBy: discordId,
+    requestedBy: viewer.discordId,
     managedBy: MANAGED_BY,
     updatedAt: now,
   };
@@ -572,6 +693,12 @@ function normalizeClient(record: RawRecord, server?: RawRecord): Client | null {
       valueAt(record, "discordId", "discord_id", "usuarioId", "usuario_id", "ownerId"),
     ),
     guildId,
+    accessRoleId: asString(
+      valueAt(record, "accessRoleId", "access_role_id", "cargoAcessoId", "cargo_acesso_id") ??
+        (server
+          ? valueAt(server, "accessRoleId", "access_role_id", "cargoAcessoId", "cargo_acesso_id")
+          : undefined),
+    ),
     createdAt: asDateString(valueAt(record, "createdAt", "created_at", "criadoEm", "dataCriacao")),
   };
 }
@@ -969,23 +1096,22 @@ export async function recordOrganizationEvent(
   return { duplicate, statistics: statistics ?? emptyOrganizationStats(input.guildId) };
 }
 
-function canViewGuild(state: Database, guildId: string, discordId: string): boolean {
-  const isAdministrator =
-    state.settings.adminDiscordId === discordId ||
-    state.users.some((user) => user.discordId === discordId && user.role === "admin");
-  return (
-    isAdministrator ||
-    state.clients.some((client) => client.guildId === guildId && client.discordId === discordId)
-  );
+async function canViewGuild(
+  state: Database,
+  guildId: string,
+  viewer: DiscordViewerAccess,
+): Promise<boolean> {
+  const client = state.clients.find((item) => item.guildId === guildId);
+  return client ? viewerCanAccessClient(client, viewer) : false;
 }
 
 export async function loadOrganizationStatisticsForViewer(
   guildId: string,
-  discordId: string,
+  viewer: DiscordViewerAccess,
 ): Promise<OrganizationStats> {
   const database = await getMongoDatabase();
   const state = await readCanonicalDatabase(database);
-  if (!canViewGuild(state, guildId, discordId)) {
+  if (!(await canViewGuild(state, guildId, viewer))) {
     throw new StatisticsAuthorizationError("Você não possui acesso a este servidor.");
   }
   const [statistics] = await loadOrganizationStatistics(database, [guildId]);
@@ -994,12 +1120,12 @@ export async function loadOrganizationStatisticsForViewer(
 
 export async function resetOrganizationStatisticsForViewer(
   guildId: string,
-  discordId: string,
+  viewer: DiscordViewerAccess,
   scope: "all" | "recruitments" | "sales",
 ): Promise<OrganizationStats> {
   const database = await getMongoDatabase();
   const state = await readCanonicalDatabase(database);
-  if (!canViewGuild(state, guildId, discordId)) {
+  if (!(await canViewGuild(state, guildId, viewer))) {
     throw new StatisticsAuthorizationError("Você não possui acesso a este servidor.");
   }
   await database.collection<OrganizationEventDocument>(ORGANIZATION_EVENTS_COLLECTION).deleteMany({
@@ -1081,6 +1207,7 @@ async function saveDatabase(database: Db, state: Database): Promise<void> {
           guildId: client.guildId,
           clientId: client.id,
           appName: client.appName,
+          accessRoleId: client.accessRoleId,
           licenses: licensesByClient.get(client.id) ?? [],
           statistics: state.organizationStats.find((item) => item.guildId === client.guildId),
         },

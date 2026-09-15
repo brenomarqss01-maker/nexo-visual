@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/auth/session";
-import { ADMIN_DISCORD_ID } from "@/data/seed";
 import { Button } from "@/components/ui/button";
 import { clearDiscordOAuthState, isValidDiscordOAuthState } from "@/services/auth/discordAuth";
 import { exchangeDiscordAuthorizationCode } from "@/services/auth/discordOAuth.functions";
@@ -50,10 +49,7 @@ function DiscordCallbackPage() {
         const discordId = identity.discordId.trim();
         clearDiscordOAuthState();
         signIn(discordId);
-        await navigate({
-          to: discordId === ADMIN_DISCORD_ID ? "/admin" : "/painel",
-          replace: true,
-        });
+        await navigate({ to: "/perfis", replace: true });
       } catch (requestError) {
         setError(
           requestError instanceof Error

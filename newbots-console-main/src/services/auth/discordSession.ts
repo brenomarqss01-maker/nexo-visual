@@ -3,6 +3,13 @@ import { useSession as createServerSessionManager } from "@tanstack/react-start/
 
 interface DiscordSessionData {
   discordId: string;
+  accessToken?: string | undefined;
+  accessTokenExpiresAt?: number | undefined;
+}
+
+export interface AuthenticatedDiscordSession {
+  discordId: string;
+  accessToken?: string | undefined;
 }
 
 const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
@@ -36,16 +43,37 @@ async function getDiscordSession() {
   });
 }
 
-export async function saveAuthenticatedDiscordId(discordId: string): Promise<void> {
+export async function saveAuthenticatedDiscordSession(input: {
+  discordId: string;
+  accessToken: string;
+  expiresIn: number;
+}): Promise<void> {
   const session = await getDiscordSession();
-  await session.update({ discordId });
+  await session.update({
+    discordId: input.discordId,
+    accessToken: input.accessToken,
+    accessTokenExpiresAt: Date.now() + Math.max(0, input.expiresIn - 60) * 1_000,
+  });
 }
 
-export async function requireAuthenticatedDiscordId(): Promise<string> {
+export async function clearAuthenticatedDiscordSession(): Promise<void> {
+  const session = await getDiscordSession();
+  await session.clear();
+}
+
+export async function requireAuthenticatedDiscordSession(): Promise<AuthenticatedDiscordSession> {
   const session = await getDiscordSession();
   const discordId = session.data.discordId?.trim();
   if (!discordId || !/^\d{15,22}$/.test(discordId)) {
     throw new Error("Sua sessão expirou. Entre novamente com o Discord.");
   }
-  return discordId;
+  const accessToken =
+    session.data.accessTokenExpiresAt && session.data.accessTokenExpiresAt > Date.now()
+      ? session.data.accessToken?.trim()
+      : undefined;
+  return { discordId, ...(accessToken ? { accessToken } : {}) };
+}
+
+export async function requireAuthenticatedDiscordId(): Promise<string> {
+  return (await requireAuthenticatedDiscordSession()).discordId;
 }

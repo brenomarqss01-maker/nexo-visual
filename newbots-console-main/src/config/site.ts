@@ -20,6 +20,6 @@ export const PRODUCT_AUTOPLAY_INTERVAL = 18000;
 export const discordOAuthConfig = {
   clientId: import.meta.env["VITE_DISCORD_CLIENT_ID"] ?? "",
   redirectUri: import.meta.env["VITE_DISCORD_REDIRECT_URI"] ?? "",
-  scopes: ["identify"],
+  scopes: ["identify", "guilds", "guilds.members.read"],
   // DISCORD_CLIENT_SECRET nunca vive no frontend — apenas em server functions.
 } as const;

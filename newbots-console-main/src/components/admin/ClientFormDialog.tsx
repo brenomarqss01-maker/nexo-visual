@@ -38,6 +38,7 @@ export function ClientFormDialog({
   const [appName, setAppName] = useState(client?.appName ?? "");
   const [discordId, setDiscordId] = useState(client?.discordId ?? "");
   const [guildId, setGuildId] = useState(client?.guildId ?? "");
+  const [accessRoleId, setAccessRoleId] = useState(client?.accessRoleId ?? "");
   const [botToken, setBotToken] = useState("");
   const [systemIds, setSystemIds] = useState<string[]>(existingSystemIds);
   const [expirationDays, setExpirationDays] = useState(String(db.settings.defaultExpirationDays));
@@ -46,6 +47,7 @@ export function ClientFormDialog({
     setAppName(client?.appName ?? "");
     setDiscordId(client?.discordId ?? "");
     setGuildId(client?.guildId ?? "");
+    setAccessRoleId(client?.accessRoleId ?? "");
     setBotToken("");
     setSystemIds(existingSystemIds);
     setExpirationDays(String(db.settings.defaultExpirationDays));
@@ -57,6 +59,11 @@ export function ClientFormDialog({
       return;
     }
     const normalizedGuildId = guildId.trim();
+    const normalizedAccessRoleId = accessRoleId.trim();
+    if (normalizedAccessRoleId && !/^\d{15,22}$/.test(normalizedAccessRoleId)) {
+      toast.error("Informe um ID de cargo válido ou deixe o campo vazio.");
+      return;
+    }
     const clientForGuild = db.clients.find(
       (item) => item.guildId === normalizedGuildId && item.id !== client?.id,
     );
@@ -94,10 +101,17 @@ export function ClientFormDialog({
           appName: appName.trim(),
           discordId: discordId.trim(),
           guildId: normalizedGuildId,
+          accessRoleId: normalizedAccessRoleId || undefined,
         });
         setClientSystems(client.id, systemIds, days);
         toast.success("Cliente atualizado.");
       } else if (clientForGuild) {
+        updateClient(clientForGuild.id, {
+          appName: appName.trim(),
+          discordId: discordId.trim(),
+          guildId: normalizedGuildId,
+          accessRoleId: normalizedAccessRoleId || undefined,
+        });
         const currentSystemIds = db.licenses
           .filter((license) => license.clientId === clientForGuild.id)
           .map((license) => license.systemId);
@@ -110,6 +124,7 @@ export function ClientFormDialog({
           appName: appName.trim(),
           discordId: discordId.trim(),
           guildId: normalizedGuildId,
+          accessRoleId: normalizedAccessRoleId || undefined,
           systemIds,
           expirationDays: days,
         });
@@ -198,6 +213,21 @@ export function ClientFormDialog({
             <p className="text-xs text-muted-foreground">
               O token é validado pelo Discord e armazenado criptografado. Ele permite carregar os
               canais, cargos e categorias do servidor.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="accessRoleId">ID do cargo com acesso ao painel</Label>
+            <Input
+              id="accessRoleId"
+              value={accessRoleId}
+              onChange={(event) => setAccessRoleId(event.target.value.replace(/\D/g, ""))}
+              placeholder="123456789012345678"
+              className="font-mono text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              Qualquer membro que possuir este cargo no servidor poderá abrir e editar esta
+              aplicação. O ID do cliente continua com acesso direto.
             </p>
           </div>
 

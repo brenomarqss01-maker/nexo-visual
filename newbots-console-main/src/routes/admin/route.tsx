@@ -1,5 +1,13 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Boxes, LayoutDashboard, ScrollText, Settings, Users, UserSquare2 } from "lucide-react";
+import {
+  Boxes,
+  LayoutDashboard,
+  PanelsTopLeft,
+  ScrollText,
+  Settings,
+  Users,
+  UserSquare2,
+} from "lucide-react";
 import { useEffect } from "react";
 import { Shell, type NavGroup } from "@/components/layout/Shell";
 import { useAuth } from "@/auth/session";
@@ -18,6 +26,7 @@ const groups: NavGroup[] = [
       { to: "/admin/clientes", label: "Clientes", icon: UserSquare2 },
       { to: "/admin/sistemas", label: "Sistemas", icon: Boxes },
       { to: "/admin/usuarios", label: "Usuários", icon: Users },
+      { to: "/perfis", label: "Trocar perfil", icon: PanelsTopLeft },
     ],
   },
   {
@@ -37,7 +46,7 @@ function AdminLayout() {
   useEffect(() => {
     if (!ready) return;
     if (!discordId) void navigate({ to: "/login", replace: true });
-    else if (!isAdmin) void navigate({ to: "/painel", replace: true });
+    else if (!isAdmin) void navigate({ to: "/perfis", replace: true });
   }, [ready, discordId, isAdmin, navigate]);
 
   if (!ready || !isAdmin) return null;

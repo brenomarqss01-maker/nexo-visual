@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { requireAuthenticatedDiscordId } from "@/services/auth/discordSession";
+import {
+  requireAuthenticatedDiscordSession,
+  type AuthenticatedDiscordSession,
+} from "@/services/auth/discordSession";
 import {
   loadPersonalizationContextForViewer,
   saveBotCustomizationForViewer,
@@ -49,9 +52,9 @@ export const Route = createFileRoute("/api/personalization")({
           return json({ ok: false, error: "Os arquivos enviados ultrapassam 4 MB." }, 413);
         }
 
-        let discordId: string;
+        let viewer: AuthenticatedDiscordSession;
         try {
-          discordId = await requireAuthenticatedDiscordId();
+          viewer = await requireAuthenticatedDiscordSession();
         } catch (error) {
           return json(
             {
@@ -99,7 +102,7 @@ export const Route = createFileRoute("/api/personalization")({
 
         let context;
         try {
-          context = await loadPersonalizationContextForViewer(parsed.data.clientId, discordId);
+          context = await loadPersonalizationContextForViewer(parsed.data.clientId, viewer);
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Não foi possível abrir esta aplicação.";
@@ -108,7 +111,7 @@ export const Route = createFileRoute("/api/personalization")({
             await reportCustomizationTechnicalError({
               error,
               stage: "Carregar aplicação",
-              requesterId: discordId,
+              requesterId: viewer.discordId,
               clientId: parsed.data.clientId,
             });
           }
@@ -130,7 +133,7 @@ export const Route = createFileRoute("/api/personalization")({
           notification = await sendCustomizationRequest({
             application: context.application,
             customization: parsed.data,
-            requesterId: discordId,
+            requesterId: viewer.discordId,
             requesterName: context.requesterName,
             fallbackToken: context.token,
             avatar,
@@ -140,7 +143,7 @@ export const Route = createFileRoute("/api/personalization")({
           await reportCustomizationTechnicalError({
             error,
             stage: "Enviar solicitação ao Discord",
-            requesterId: discordId,
+            requesterId: viewer.discordId,
             clientId: context.application.clientId,
             guildId: context.application.guildId,
             fallbackToken: context.token,
@@ -162,14 +165,14 @@ export const Route = createFileRoute("/api/personalization")({
               avatarUrl: notification.avatarUrl ?? context.application.customization?.avatarUrl,
               bannerUrl: notification.bannerUrl ?? context.application.customization?.bannerUrl,
             },
-            discordId,
+            viewer,
           );
           return json({ ok: true, customization, notificationId: notification.messageId }, 201);
         } catch (error) {
           await reportCustomizationTechnicalError({
             error,
             stage: "Salvar personalização no MongoDB",
-            requesterId: discordId,
+            requesterId: viewer.discordId,
             clientId: context.application.clientId,
             guildId: context.application.guildId,
             fallbackToken: context.token,

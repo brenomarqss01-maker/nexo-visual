@@ -46,12 +46,18 @@ interface DataContextValue {
     appName: string;
     discordId: string;
     guildId: string;
+    accessRoleId?: string | undefined;
     systemIds: string[];
     expirationDays: number;
   }) => Client;
   updateClient: (
     id: string,
-    input: { appName: string; discordId: string; guildId: string },
+    input: {
+      appName: string;
+      discordId: string;
+      guildId: string;
+      accessRoleId?: string | undefined;
+    },
   ) => void;
   deleteClient: (id: string) => void;
   // licenças
@@ -186,6 +192,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       appName,
       discordId,
       guildId,
+      accessRoleId,
       systemIds,
       expirationDays,
     }) => {
@@ -194,6 +201,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         appName,
         discordId,
         guildId,
+        accessRoleId,
         createdAt: new Date().toISOString(),
       };
       commit((draft) => {
@@ -235,6 +243,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         client.appName = input.appName;
         client.discordId = input.discordId;
         client.guildId = input.guildId;
+        client.accessRoleId = input.accessRoleId;
         if (previousGuildId !== input.guildId) {
           draft.configs
             .filter((config) => config.clientId === id && config.guildId === previousGuildId)
