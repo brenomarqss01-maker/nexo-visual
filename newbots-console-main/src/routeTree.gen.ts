@@ -17,6 +17,7 @@ import { Route as NoProductsRouteImport } from './routes/no-products'
 import { Route as PainelRouteRouteImport } from './routes/painel/route'
 import { Route as PerfisRouteImport } from './routes/perfis'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminChangelogRouteImport } from './routes/admin/changelog'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin/configuracoes'
 import { Route as AdminLogsRouteImport } from './routes/admin/logs'
 import { Route as AdminUsuariosRouteImport } from './routes/admin/usuarios'
@@ -72,6 +73,11 @@ const PerfisRoute = PerfisRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminChangelogRoute = AdminChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
@@ -163,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/no-products': typeof NoProductsRoute
   '/perfis': typeof PerfisRoute
+  '/admin/changelog': typeof AdminChangelogRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
@@ -187,6 +194,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/no-products': typeof NoProductsRoute
   '/perfis': typeof PerfisRoute
+  '/admin/changelog': typeof AdminChangelogRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
@@ -214,6 +222,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/no-products': typeof NoProductsRoute
   '/perfis': typeof PerfisRoute
+  '/admin/changelog': typeof AdminChangelogRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
@@ -242,6 +251,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/no-products'
     | '/perfis'
+    | '/admin/changelog'
     | '/admin/configuracoes'
     | '/admin/logs'
     | '/admin/usuarios'
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/no-products'
     | '/perfis'
+    | '/admin/changelog'
     | '/admin/configuracoes'
     | '/admin/logs'
     | '/admin/usuarios'
@@ -292,6 +303,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/no-products'
     | '/perfis'
+    | '/admin/changelog'
     | '/admin/configuracoes'
     | '/admin/logs'
     | '/admin/usuarios'
@@ -380,6 +392,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/changelog': {
+      id: '/admin/changelog'
+      path: '/changelog'
+      fullPath: '/admin/changelog'
+      preLoaderRoute: typeof AdminChangelogRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/admin/configuracoes': {
@@ -498,6 +517,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteRouteChildren {
+  AdminChangelogRoute: typeof AdminChangelogRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
   AdminLogsRoute: typeof AdminLogsRoute
   AdminUsuariosRoute: typeof AdminUsuariosRoute
@@ -510,6 +530,7 @@ interface AdminRouteRouteChildren {
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminChangelogRoute: AdminChangelogRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRoute,
   AdminLogsRoute: AdminLogsRoute,
   AdminUsuariosRoute: AdminUsuariosRoute,

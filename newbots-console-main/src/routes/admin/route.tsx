@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/
 import {
   Boxes,
   LayoutDashboard,
+  Megaphone,
   PanelsTopLeft,
   ScrollText,
   Settings,
@@ -25,6 +26,7 @@ const groups: NavGroup[] = [
       { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
       { to: "/admin/clientes", label: "Clientes", icon: UserSquare2 },
       { to: "/admin/sistemas", label: "Sistemas", icon: Boxes },
+      { to: "/admin/changelog", label: "Changelog", icon: Megaphone },
       { to: "/admin/usuarios", label: "Usuários", icon: Users },
       { to: "/perfis", label: "Trocar perfil", icon: PanelsTopLeft },
     ],
