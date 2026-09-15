@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -44,6 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [applications, setApplications] = useState<PersonalizationApplication[]>([]);
   const [accessError, setAccessError] = useState<string | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const refreshGenerationRef = useRef(0);
+  const refreshRequestRef = useRef<{
+    discordId: string;
+    promise: Promise<PersonalizationApplication[]>;
+  } | null>(null);
 
   useEffect(() => {
     const storedDiscordId = window.localStorage.getItem(SESSION_KEY)?.trim() || null;
@@ -52,24 +58,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessionReady(true);
   }, []);
 
-  const refreshApplications = useCallback(async (): Promise<PersonalizationApplication[]> => {
+  const refreshApplications = useCallback((): Promise<PersonalizationApplication[]> => {
     if (!discordId) {
+      refreshGenerationRef.current += 1;
+      refreshRequestRef.current = null;
       setApplications([]);
       setAccessError(null);
-      return [];
+      return Promise.resolve([]);
     }
-    try {
-      const items = await getPersonalizationApplications();
-      setApplications(items);
-      setAccessError(null);
-      return items;
-    } catch (error) {
-      setApplications([]);
-      setAccessError(
-        error instanceof Error ? error.message : "Não foi possível validar suas aplicações.",
-      );
-      return [];
-    }
+
+    const currentRequest = refreshRequestRef.current;
+    if (currentRequest?.discordId === discordId) return currentRequest.promise;
+
+    const generation = ++refreshGenerationRef.current;
+    const request = (async () => {
+      try {
+        const items = await getPersonalizationApplications();
+        if (refreshGenerationRef.current === generation) {
+          setApplications(items);
+          setAccessError(null);
+        }
+        return items;
+      } catch (error) {
+        if (refreshGenerationRef.current === generation) {
+          setApplications([]);
+          setAccessError(
+            error instanceof Error ? error.message : "Não foi possível validar suas aplicações.",
+          );
+        }
+        return [];
+      }
+    })();
+    refreshRequestRef.current = { discordId, promise: request };
+    void request.finally(() => {
+      if (refreshRequestRef.current?.promise === request) refreshRequestRef.current = null;
+    });
+    return request;
   }, [discordId]);
 
   useEffect(() => {
@@ -93,6 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback((id: string) => {
     const discordId = id.trim();
+    refreshGenerationRef.current += 1;
+    refreshRequestRef.current = null;
     window.localStorage.setItem(SESSION_KEY, discordId);
     window.localStorage.removeItem(SELECTED_APPLICATION_KEY);
     setSelectedClientId(null);
@@ -103,6 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await endDiscordSession();
     } finally {
+      refreshGenerationRef.current += 1;
+      refreshRequestRef.current = null;
       window.localStorage.removeItem(SESSION_KEY);
       window.localStorage.removeItem(SELECTED_APPLICATION_KEY);
       setApplications([]);

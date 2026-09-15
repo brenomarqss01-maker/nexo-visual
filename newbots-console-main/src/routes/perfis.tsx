@@ -30,7 +30,6 @@ function ProfileSelection() {
     isAdmin,
     selectClient,
     clearSelectedClient,
-    refreshApplications,
     signOut,
   } = useAuth();
   const navigate = useNavigate();
@@ -39,10 +38,8 @@ function ProfileSelection() {
     if (!ready) return;
     if (!discordId) {
       void navigate({ to: "/login", replace: true });
-      return;
     }
-    void refreshApplications();
-  }, [ready, discordId, navigate, refreshApplications]);
+  }, [ready, discordId, navigate]);
 
   if (!ready || !discordId) {
     return (

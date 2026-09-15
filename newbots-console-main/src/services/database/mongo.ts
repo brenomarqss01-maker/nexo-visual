@@ -39,6 +39,7 @@ loadEnvironment({ override: false, quiet: true });
 const STATE_COLLECTION = "application_state";
 const BOT_CREDENTIALS_COLLECTION = "bot_credentials";
 const BOT_CUSTOMIZATIONS_COLLECTION = "bot_customizations";
+const DISCORD_MEMBER_ACCESS_CACHE_COLLECTION = "discord_member_access_cache";
 const ORGANIZATION_EVENTS_COLLECTION = "estatisticas_eventos";
 const STATE_ID = "primary";
 const MANAGED_BY = "nexo-network-panel";
@@ -50,6 +51,7 @@ const COLLECTIONS = [
   "logs",
   ORGANIZATION_EVENTS_COLLECTION,
   BOT_CUSTOMIZATIONS_COLLECTION,
+  DISCORD_MEMBER_ACCESS_CACHE_COLLECTION,
 ] as const;
 
 type RawRecord = Record<string, unknown>;
@@ -75,6 +77,15 @@ type BotCredentialDocument = {
 
 type BotCustomizationDocument = Omit<BotCustomization, "updatedAt"> & {
   _id: string;
+  managedBy: string;
+  updatedAt: Date;
+};
+
+type DiscordMemberAccessCacheDocument = {
+  _id: string;
+  discordId: string;
+  guildId: string;
+  roles: string[];
   managedBy: string;
   updatedAt: Date;
 };
@@ -360,35 +371,184 @@ type DiscordViewerGuild = {
   icon: string | null;
 };
 
-async function fetchDiscordForViewer(path: string, accessToken: string): Promise<Response | null> {
-  let response: Response;
-  try {
-    response = await fetch(`${DISCORD_API}${path}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      signal: AbortSignal.timeout(15_000),
-    });
-  } catch {
-    throw new Error("Não foi possível validar seus servidores no Discord.");
+type DiscordGuildCacheEntry = {
+  guilds: DiscordViewerGuild[];
+  expiresAt: number;
+  staleUntil: number;
+};
+
+type DiscordMemberRoleCacheEntry = {
+  roles: string[];
+  updatedAt: number;
+};
+
+const DISCORD_CACHE_FRESH_MS = 2 * 60 * 1_000;
+const DISCORD_CACHE_STALE_MS = 30 * 60 * 1_000;
+const DISCORD_MAX_RETRY_WAIT_MS = 15_000;
+const viewerGuildCache = new Map<string, DiscordGuildCacheEntry>();
+const memberRoleCache = new Map<string, DiscordMemberRoleCacheEntry>();
+const memberRoleRequests = new Map<string, Promise<string[] | null>>();
+
+class DiscordRateLimitError extends Error {
+  constructor(readonly retryAfterMs: number) {
+    super("O Discord limitou temporariamente a validação dos cargos.");
   }
-  if (response.ok) return response;
-  if (response.status === 404) return null;
-  if (response.status === 401 || response.status === 403) {
-    throw new Error(
-      "O Discord não autorizou a leitura dos seus cargos. Saia e entre novamente no painel.",
-    );
-  }
-  if (response.status === 429) {
-    throw new Error("O Discord limitou a validação dos cargos. Aguarde e tente novamente.");
-  }
-  throw new Error(`Não foi possível validar seu acesso no Discord (HTTP ${response.status}).`);
 }
 
-async function loadViewerGuilds(accessToken?: string): Promise<Map<string, DiscordViewerGuild>> {
-  if (!accessToken) return new Map();
-  const response = await fetchDiscordForViewer("/users/@me/guilds", accessToken);
-  if (!response) return new Map();
-  const guilds = (await response.json()) as DiscordViewerGuild[];
-  return new Map(guilds.map((guild) => [guild.id, guild]));
+function waitForDiscord(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function readDiscordRetryAfter(response: Response): Promise<number> {
+  const headerSeconds = Number(response.headers.get("retry-after"));
+  if (Number.isFinite(headerSeconds) && headerSeconds > 0) {
+    return Math.ceil(headerSeconds * 1_000);
+  }
+  try {
+    const body = (await response.clone().json()) as { retry_after?: number | undefined };
+    if (typeof body.retry_after === "number" && Number.isFinite(body.retry_after)) {
+      return Math.ceil(Math.max(body.retry_after, 0.25) * 1_000);
+    }
+  } catch {
+    // Alguns proxies não preservam o corpo JSON do erro 429.
+  }
+  return 1_000;
+}
+
+async function fetchDiscordForViewer(path: string, accessToken: string): Promise<Response | null> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    let response: Response;
+    try {
+      response = await fetch(`${DISCORD_API}${path}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "User-Agent": "DiscordBot (https://nexobotss.vercel.app, 1.0)",
+        },
+        signal: AbortSignal.timeout(15_000),
+      });
+    } catch {
+      throw new Error("Não foi possível validar seus servidores no Discord.");
+    }
+    if (response.ok) return response;
+    if (response.status === 404) return null;
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(
+        "O Discord não autorizou a leitura dos seus cargos. Saia e entre novamente no painel.",
+      );
+    }
+    if (response.status === 429) {
+      const retryAfterMs = await readDiscordRetryAfter(response);
+      if (attempt < 2 && retryAfterMs <= DISCORD_MAX_RETRY_WAIT_MS) {
+        await waitForDiscord(retryAfterMs + 150);
+        continue;
+      }
+      throw new DiscordRateLimitError(retryAfterMs);
+    }
+    throw new Error(`Não foi possível validar seu acesso no Discord (HTTP ${response.status}).`);
+  }
+  throw new DiscordRateLimitError(1_000);
+}
+
+async function loadViewerGuilds(
+  viewer: DiscordViewerAccess,
+): Promise<Map<string, DiscordViewerGuild>> {
+  if (!viewer.accessToken) return new Map();
+  const now = Date.now();
+  const cached = viewerGuildCache.get(viewer.discordId);
+  if (cached && cached.expiresAt > now) {
+    return new Map(cached.guilds.map((guild) => [guild.id, guild]));
+  }
+
+  try {
+    const response = await fetchDiscordForViewer("/users/@me/guilds", viewer.accessToken);
+    if (!response) return new Map();
+    const guilds = (await response.json()) as DiscordViewerGuild[];
+    viewerGuildCache.set(viewer.discordId, {
+      guilds,
+      expiresAt: now + DISCORD_CACHE_FRESH_MS,
+      staleUntil: now + DISCORD_CACHE_STALE_MS,
+    });
+    return new Map(guilds.map((guild) => [guild.id, guild]));
+  } catch (error) {
+    if (error instanceof DiscordRateLimitError && cached && cached.staleUntil > now) {
+      return new Map(cached.guilds.map((guild) => [guild.id, guild]));
+    }
+    throw error;
+  }
+}
+
+async function loadViewerMemberRoles(
+  viewer: DiscordViewerAccess,
+  guildId: string,
+): Promise<string[] | null> {
+  const accessToken = viewer.accessToken;
+  if (!accessToken) return null;
+  const key = `${viewer.discordId}:${guildId}`;
+  const now = Date.now();
+  const memoryCached = memberRoleCache.get(key);
+  if (memoryCached && memoryCached.updatedAt + DISCORD_CACHE_FRESH_MS > now) {
+    return memoryCached.roles;
+  }
+
+  const existingRequest = memberRoleRequests.get(key);
+  if (existingRequest) return existingRequest;
+
+  const request = (async () => {
+    const database = await getMongoDatabase();
+    const collection = database.collection<DiscordMemberAccessCacheDocument>(
+      DISCORD_MEMBER_ACCESS_CACHE_COLLECTION,
+    );
+    const persisted = await collection.findOne({ _id: key, managedBy: MANAGED_BY });
+    const persistedUpdatedAt = persisted ? new Date(persisted.updatedAt).getTime() : 0;
+    const persistedRoles = persisted?.roles.filter((role) => typeof role === "string") ?? [];
+
+    if (persisted && persistedUpdatedAt + DISCORD_CACHE_FRESH_MS > now) {
+      memberRoleCache.set(key, { roles: persistedRoles, updatedAt: persistedUpdatedAt });
+      return persistedRoles;
+    }
+
+    try {
+      const response = await fetchDiscordForViewer(
+        `/users/@me/guilds/${guildId}/member`,
+        accessToken,
+      );
+      if (!response) return null;
+      const member = (await response.json()) as { roles?: unknown };
+      const roles = Array.isArray(member.roles)
+        ? [...new Set(member.roles.filter((role): role is string => typeof role === "string"))]
+        : [];
+      const updatedAt = new Date();
+      memberRoleCache.set(key, { roles, updatedAt: updatedAt.getTime() });
+      await collection.replaceOne(
+        { _id: key },
+        {
+          discordId: viewer.discordId,
+          guildId,
+          roles,
+          managedBy: MANAGED_BY,
+          updatedAt,
+        },
+        { upsert: true },
+      );
+      return roles;
+    } catch (error) {
+      const staleRoles =
+        memoryCached && memoryCached.updatedAt + DISCORD_CACHE_STALE_MS > now
+          ? memoryCached.roles
+          : persisted && persistedUpdatedAt + DISCORD_CACHE_STALE_MS > now
+            ? persistedRoles
+            : undefined;
+      if (error instanceof DiscordRateLimitError && staleRoles) return staleRoles;
+      throw error;
+    }
+  })();
+
+  memberRoleRequests.set(key, request);
+  try {
+    return await request;
+  } finally {
+    if (memberRoleRequests.get(key) === request) memberRoleRequests.delete(key);
+  }
 }
 
 async function viewerCanAccessClient(
@@ -397,15 +557,11 @@ async function viewerCanAccessClient(
 ): Promise<boolean> {
   if (client.discordId === viewer.discordId) return true;
   if (!client.accessRoleId || !viewer.accessToken) return false;
-  const response = await fetchDiscordForViewer(
-    `/users/@me/guilds/${client.guildId}/member`,
-    viewer.accessToken,
-  );
-  if (!response) return false;
-  const member = (await response.json()) as { roles?: string[] | undefined };
-  return (
-    client.accessRoleId === client.guildId || Boolean(member.roles?.includes(client.accessRoleId))
-  );
+  if (client.accessRoleId === client.guildId) {
+    return (await loadViewerGuilds(viewer)).has(client.guildId);
+  }
+  const roles = await loadViewerMemberRoles(viewer, client.guildId);
+  return Boolean(roles?.includes(client.accessRoleId));
 }
 
 export async function assertClientAccessForViewer(
@@ -427,7 +583,7 @@ export async function loadPersonalizationApplicationsForViewer(
 ): Promise<PersonalizationApplication[]> {
   const database = await getMongoDatabase();
   const state = await readCanonicalDatabase(database);
-  const viewerGuilds = await loadViewerGuilds(viewer.accessToken);
+  const viewerGuilds = await loadViewerGuilds(viewer);
   const candidates = state.clients.filter(
     (client) =>
       client.discordId === viewer.discordId ||
@@ -452,12 +608,13 @@ export async function loadPersonalizationApplicationsForViewer(
     );
   }
 
-  const accessResults = await Promise.all(
-    candidates.map(async (client) => ({
+  const accessResults: Array<{ client: Client; allowed: boolean }> = [];
+  for (const client of candidates) {
+    accessResults.push({
       client,
       allowed: await viewerCanAccessClient(client, viewer),
-    })),
-  );
+    });
+  }
   const clients = accessResults.filter((item) => item.allowed).map((item) => item.client);
   if (clients.length === 0) return [];
 
