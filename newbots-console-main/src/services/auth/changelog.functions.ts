@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ADMIN_DISCORD_ID } from "@/data/seed";
 import { requireAuthenticatedDiscordSession } from "@/services/auth/discordSession";
 import { loadClientBotCredential } from "@/services/database/mongo";
+import { sendSiteLog } from "@/services/discordSiteLog";
 
 const DISCORD_API = "https://discord.com/api/v10";
 const MESSAGEABLE_CHANNEL_TYPES = new Set([0, 5]);
@@ -35,11 +36,12 @@ interface DiscordMessage {
   channel_id: string;
 }
 
-async function requireAdmin(): Promise<void> {
+async function requireAdmin() {
   const viewer = await requireAuthenticatedDiscordSession();
   if (viewer.discordId !== ADMIN_DISCORD_ID) {
     throw new Error("Apenas o administrador NEXO pode publicar changelogs.");
   }
+  return viewer;
 }
 
 async function discordRequest(path: string, token: string, init?: RequestInit): Promise<Response> {
@@ -134,7 +136,7 @@ export const getAdminChangelogChannels = createServerFn({ method: "POST" })
 export const publishAdminChangelog = createServerFn({ method: "POST" })
   .validator(publishSchema)
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const viewer = await requireAdmin();
     const credential = await getCredential(data.clientId, data.guildId);
 
     const channelResponse = await discordRequest(
@@ -158,6 +160,19 @@ export const publishAdminChangelog = createServerFn({ method: "POST" })
       },
     );
     const message = (await messageResponse.json()) as DiscordMessage;
+
+    await sendSiteLog({
+      category: "versions",
+      title: "Changelog publicado",
+      actorId: viewer.discordId,
+      description: data.content,
+      fields: [
+        { name: "Cliente", value: data.clientId, inline: true },
+        { name: "Servidor", value: data.guildId, inline: true },
+        { name: "Canal", value: `#${channel.name || data.channelId}`, inline: true },
+        { name: "Mensagem", value: message.id, inline: true },
+      ],
+    });
 
     return {
       messageId: message.id,

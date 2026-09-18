@@ -4,6 +4,7 @@ import { useEffect, type CSSProperties } from "react";
 import { useAuth } from "@/auth/session";
 import { NexoLogo } from "@/components/brand/NexoLogo";
 import { Button } from "@/components/ui/button";
+import { recordPanelAccess } from "@/services/auth/siteActivity.functions";
 import type { PersonalizationApplication } from "@/services/personalization/personalization.types";
 
 export const Route = createFileRoute("/perfis")({
@@ -51,6 +52,13 @@ function ProfileSelection() {
 
   const openApplication = (application: PersonalizationApplication) => {
     selectClient(application.clientId);
+    void recordPanelAccess({
+      data: {
+        area: "application",
+        clientId: application.clientId,
+        guildId: application.guildId,
+      },
+    }).catch(() => undefined);
     void navigate({ to: "/painel" });
   };
 
@@ -111,6 +119,7 @@ function ProfileSelection() {
               style={{ "--profile-delay": "0ms" } as CSSProperties}
               onClick={() => {
                 clearSelectedClient();
+                void recordPanelAccess({ data: { area: "admin" } }).catch(() => undefined);
                 void navigate({ to: "/admin" });
               }}
             >

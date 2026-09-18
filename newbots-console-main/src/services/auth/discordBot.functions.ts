@@ -7,6 +7,7 @@ import {
   saveClientBotCredential,
 } from "@/services/database/mongo";
 import { requireAuthenticatedDiscordSession } from "@/services/auth/discordSession";
+import { sendSiteLog } from "@/services/discordSiteLog";
 
 const DISCORD_API = "https://discord.com/api/v10";
 
@@ -59,19 +60,37 @@ async function fetchDiscordBot(path: string, token: string): Promise<Response> {
       headers: { Authorization: `Bot ${token}` },
       signal: AbortSignal.timeout(15_000),
     });
-  } catch {
+  } catch (error) {
+    await sendSiteLog({
+      category: "alerts",
+      title: "Discord indisponível para um bot conectado",
+      fields: [{ name: "Recurso", value: path }],
+      error,
+    });
     throw new Error("Não foi possível comunicar com o Discord. Tente novamente.");
   }
 
   if (response.ok) return response;
-  if (response.status === 401) throw new Error("O token do bot é inválido ou foi redefinido.");
-  if (response.status === 403) {
-    throw new Error("O bot não possui permissão para acessar esse servidor.");
-  }
-  if (response.status === 404) throw new Error("O bot não está instalado nesse servidor.");
-  if (response.status === 429)
-    throw new Error("O Discord limitou as consultas. Aguarde e tente novamente.");
-  throw new Error(`O Discord recusou a consulta do bot (HTTP ${response.status}).`);
+  const message =
+    response.status === 401
+      ? "O token do bot é inválido ou foi redefinido."
+      : response.status === 403
+        ? "O bot não possui permissão para acessar esse servidor."
+        : response.status === 404
+          ? "O bot não está instalado nesse servidor."
+          : response.status === 429
+            ? "O Discord limitou as consultas. Aguarde e tente novamente."
+            : `O Discord recusou a consulta do bot (HTTP ${response.status}).`;
+  await sendSiteLog({
+    category: "alerts",
+    title: "Alerta de integração com bot",
+    description: message,
+    fields: [
+      { name: "Recurso", value: path },
+      { name: "Status HTTP", value: response.status, inline: true },
+    ],
+  });
+  throw new Error(message);
 }
 
 export const connectClientDiscordBot = createServerFn({ method: "POST" })
@@ -99,6 +118,29 @@ export const connectClientDiscordBot = createServerFn({ method: "POST" })
       botName: bot.global_name || bot.username,
       token,
     });
+
+    await Promise.all([
+      sendSiteLog({
+        category: "oauth",
+        title: "Bot conectado ao site",
+        actorId: viewer.discordId,
+        fields: [
+          { name: "Bot", value: `${bot.global_name || bot.username} (${bot.id})` },
+          { name: "Servidor", value: `${guild.name} (${guild.id})` },
+          { name: "Cliente", value: data.clientId, inline: true },
+        ],
+      }),
+      sendSiteLog({
+        category: "admin",
+        title: "Credencial de bot cadastrada",
+        actorId: viewer.discordId,
+        fields: [
+          { name: "Cliente", value: data.clientId, inline: true },
+          { name: "Servidor", value: guild.id, inline: true },
+          { name: "Bot", value: bot.id, inline: true },
+        ],
+      }),
+    ]);
 
     return {
       botId: bot.id,

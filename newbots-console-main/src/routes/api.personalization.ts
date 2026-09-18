@@ -12,6 +12,7 @@ import {
   reportCustomizationTechnicalError,
   sendCustomizationRequest,
 } from "@/services/personalization/discordNotification";
+import { sendSiteLog } from "@/services/discordSiteLog";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const MAX_REQUEST_SIZE = 4_250_000;
@@ -167,6 +168,16 @@ export const Route = createFileRoute("/api/personalization")({
             },
             viewer,
           );
+          await sendSiteLog({
+            category: "changes",
+            title: "Personalização solicitada",
+            actorId: viewer.discordId,
+            fields: [
+              { name: "Aplicação", value: context.application.appName, inline: true },
+              { name: "Servidor", value: context.application.guildId, inline: true },
+              { name: "Nome solicitado", value: parsed.data.requestedName, inline: true },
+            ],
+          });
           return json({ ok: true, customization, notificationId: notification.messageId }, 201);
         } catch (error) {
           await reportCustomizationTechnicalError({

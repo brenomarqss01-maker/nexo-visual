@@ -21,7 +21,12 @@ type DiscordMessage = {
 };
 
 function notificationToken(fallbackToken?: string): string {
-  return process.env["DISCORD_NOTIFICATION_BOT_TOKEN"]?.trim() || fallbackToken?.trim() || "";
+  return (
+    process.env["DISCORD_SITE_LOG_BOT_TOKEN"]?.trim() ||
+    process.env["DISCORD_NOTIFICATION_BOT_TOKEN"]?.trim() ||
+    fallbackToken?.trim() ||
+    ""
+  );
 }
 
 function escapeDiscordMarkdown(value: string): string {
