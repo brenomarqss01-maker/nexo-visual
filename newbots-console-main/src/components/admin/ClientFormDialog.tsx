@@ -42,6 +42,7 @@ export function ClientFormDialog({
   const [botToken, setBotToken] = useState("");
   const [systemIds, setSystemIds] = useState<string[]>(existingSystemIds);
   const [expirationDays, setExpirationDays] = useState(String(db.settings.defaultExpirationDays));
+  const [newClientId, setNewClientId] = useState(() => uid("cli"));
   const [submitting, setSubmitting] = useState(false);
   const reset = () => {
     setAppName(client?.appName ?? "");
@@ -51,6 +52,7 @@ export function ClientFormDialog({
     setBotToken("");
     setSystemIds(existingSystemIds);
     setExpirationDays(String(db.settings.defaultExpirationDays));
+    setNewClientId(uid("cli"));
   };
 
   const submit = async () => {
@@ -76,7 +78,7 @@ export function ClientFormDialog({
       return;
     }
     const days = Number(expirationDays) || db.settings.defaultExpirationDays;
-    const targetClientId = client?.id ?? clientForGuild?.id ?? uid("cli");
+    const targetClientId = client?.id ?? clientForGuild?.id ?? newClientId;
     const normalizedToken = botToken.trim();
     const guildChanged = Boolean(editing && client && normalizedGuildId !== client.guildId);
     if ((!editing && !clientForGuild && !normalizedToken) || (guildChanged && !normalizedToken)) {
@@ -119,7 +121,7 @@ export function ClientFormDialog({
         setClientSystems(clientForGuild.id, nextSystemIds, days);
         toast.success("Sistema(s) adicionado(s) ao cliente existente.");
       } else {
-        createClient({
+        await createClient({
           id: targetClientId,
           appName: appName.trim(),
           discordId: discordId.trim(),

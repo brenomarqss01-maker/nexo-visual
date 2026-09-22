@@ -49,7 +49,7 @@ interface DataContextValue {
     accessRoleId?: string | undefined;
     systemIds: string[];
     expirationDays: number;
-  }) => Client;
+  }) => Promise<Client>;
   updateClient: (
     id: string,
     input: {
@@ -110,10 +110,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const persist = useCallback((database: Database) => {
-    saveQueue.current = saveQueue.current
-      .catch(() => undefined)
-      .then(() => repository.save(database))
-      .catch((error) => console.error("Não foi possível salvar no MongoDB.", error));
+    const request = saveQueue.current.catch(() => undefined).then(() => repository.save(database));
+    saveQueue.current = request.catch((error) =>
+      console.error("Não foi possível salvar no MongoDB.", error),
+    );
+    return request;
   }, []);
 
   const commit = useCallback(
@@ -187,7 +188,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       });
     };
 
-    const createClient: DataContextValue["createClient"] = ({
+    const createClient: DataContextValue["createClient"] = async ({
       id,
       appName,
       discordId,
@@ -204,34 +205,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
         accessRoleId,
         createdAt: new Date().toISOString(),
       };
-      commit((draft) => {
-        draft.clients.push(client);
-        const expiresAt = addDays(expirationDays);
-        for (const systemId of systemIds) {
-          draft.licenses.push({
-            id: uid("lic"),
-            clientId: client.id,
-            systemId,
-            createdAt: client.createdAt,
-            expiresAt,
-          });
-        }
-        if (!draft.users.some((u) => u.discordId === discordId)) {
-          draft.users.push({
-            discordId,
-            name: appName,
-            role: discordId === ADMIN_DISCORD_ID ? "admin" : "client",
-            avatarColor: "#4f7fd6",
-          });
-        }
-        draft.logs.unshift({
-          id: uid("log"),
-          at: new Date().toISOString(),
-          actor: "Administrador",
-          action: "Cliente criado",
-          detail: appName,
+      const next: Database = JSON.parse(JSON.stringify(db));
+      next.clients.push(client);
+      const expiresAt = addDays(expirationDays);
+      for (const systemId of systemIds) {
+        next.licenses.push({
+          id: uid("lic"),
+          clientId: client.id,
+          systemId,
+          createdAt: client.createdAt,
+          expiresAt,
         });
+      }
+      if (!next.users.some((u) => u.discordId === discordId)) {
+        next.users.push({
+          discordId,
+          name: appName,
+          role: discordId === ADMIN_DISCORD_ID ? "admin" : "client",
+          avatarColor: "#4f7fd6",
+        });
+      }
+      next.logs.unshift({
+        id: uid("log"),
+        at: new Date().toISOString(),
+        actor: "Administrador",
+        action: "Cliente criado",
+        detail: appName,
       });
+      await persist(next);
+      setDb(next);
       return client;
     };
 
@@ -405,7 +407,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       resetDatabase,
       log,
     };
-  }, [db, ready, databaseError, commit, log]);
+  }, [db, ready, databaseError, commit, log, persist]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
