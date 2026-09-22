@@ -1339,7 +1339,11 @@ async function syncManagedCollection(
   );
 }
 
-async function saveDatabase(database: Db, state: Database): Promise<void> {
+async function saveDatabase(
+  database: Db,
+  state: Database,
+  { pruneBotCredentials = true }: { pruneBotCredentials?: boolean } = {},
+): Promise<void> {
   await database
     .collection<ApplicationStateDocument>(STATE_COLLECTION)
     .replaceOne({ _id: STATE_ID }, { database: state, updatedAt: new Date() }, { upsert: true });
@@ -1412,11 +1416,13 @@ async function saveDatabase(database: Db, state: Database): Promise<void> {
     ),
   ]);
 
-  const clientIds = state.clients.map((client) => client.id);
-  await database.collection(BOT_CREDENTIALS_COLLECTION).deleteMany({
-    managedBy: MANAGED_BY,
-    ...(clientIds.length > 0 ? { clientId: { $nin: clientIds } } : {}),
-  });
+  if (pruneBotCredentials) {
+    const clientIds = state.clients.map((client) => client.id);
+    await database.collection(BOT_CREDENTIALS_COLLECTION).deleteMany({
+      managedBy: MANAGED_BY,
+      ...(clientIds.length > 0 ? { clientId: { $nin: clientIds } } : {}),
+    });
+  }
 }
 
 export async function saveDatabaseToMongo(state: Database): Promise<void> {
@@ -1441,7 +1447,10 @@ export async function loadDatabaseFromMongo(): Promise<Database> {
     normalized.clients.map((client) => client.guildId),
   );
 
-  await saveDatabase(database, normalized);
+  // Uma simples leitura também acontece antes de cadastrar o cliente. Nesse intervalo,
+  // a credencial do bot já existe, mas o cliente ainda não entrou no estado canônico.
+  // Sincronizamos as coleções sem remover essa credencial recém-criada.
+  await saveDatabase(database, normalized, { pruneBotCredentials: false });
   console.info(
     `[MongoDB] Dados recuperados: ${normalized.clients.length} clientes, ` +
       `${normalized.systems.length} sistemas e ${normalized.licenses.length} licenças.`,
