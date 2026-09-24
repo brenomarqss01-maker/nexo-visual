@@ -5,14 +5,14 @@ export function NexoLogo({ className = "" }: { className?: string }) {
   return (
     <span
       className={cn(
-        "relative inline-block h-8 w-[10.4rem] shrink-0 select-none overflow-hidden",
+        "relative inline-flex h-8 w-[10.4rem] shrink-0 select-none items-center justify-center overflow-hidden",
         className,
       )}
     >
       <img
         src={logoUrl}
         alt="NEXO NETWORK"
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[550%] w-auto max-w-none -translate-x-1/2 -translate-y-1/2"
+        className="pointer-events-none h-auto w-full max-w-full shrink-0 object-contain"
         draggable={false}
       />
     </span>
