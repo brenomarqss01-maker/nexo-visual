@@ -89,11 +89,6 @@ export function HeroAvatar() {
           />
         </div>
       </div>
-
-      <figcaption className="home-avatar__caption">
-        <span>NX / AVATAR</span>
-        <span aria-hidden="true">Interactive unit</span>
-      </figcaption>
     </figure>
   );
 }

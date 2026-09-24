@@ -72,45 +72,39 @@ export function ProductCarousel() {
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
-          <div className="home-product__visual">
-            <span className="home-product__watermark" aria-hidden="true">
-              {number}
-            </span>
-            <div className="home-product__visual-label">
-              <span>System preview</span>
-              <span>NX—{product.id.toUpperCase()}</span>
-            </div>
-            {product.image ? (
-              <ProductImage
-                key={product.image}
-                src={product.image}
-                alt={`Preview do ${product.title}`}
-              />
-            ) : (
-              <ProductFallback label={product.id} />
-            )}
-          </div>
-
           <div className="home-product__content">
             <div className="home-product__meta">
               <span>Produto / {number}</span>
               {product.badge ? <b>{product.badge}</b> : <span>Status / Active</span>}
             </div>
-            <h3>{product.title}</h3>
-            {product.subtitle ? <p className="home-product__subtitle">{product.subtitle}</p> : null}
-            <p className="home-product__description">{product.description}</p>
-            <ul>
-              {product.features.map((feature, featureIndex) => (
-                <li key={feature}>
-                  <span>0{featureIndex + 1}</span>
-                  {feature}
-                </li>
-              ))}
-            </ul>
-            <a href={product.url} target="_blank" rel="noreferrer" className="home-product__link">
-              <span>Conhecer sistema</span>
-              <ArrowUpRight aria-hidden="true" />
-            </a>
+            <div className="home-product__body">
+              <div className="home-product__intro">
+                <h3>{product.title}</h3>
+                {product.subtitle ? (
+                  <p className="home-product__subtitle">{product.subtitle}</p>
+                ) : null}
+                <p className="home-product__description">{product.description}</p>
+              </div>
+              <div className="home-product__details">
+                <ul>
+                  {product.features.map((feature, featureIndex) => (
+                    <li key={feature}>
+                      <span>0{featureIndex + 1}</span>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href={product.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="home-product__link"
+                >
+                  <span>Conhecer sistema</span>
+                  <ArrowUpRight aria-hidden="true" />
+                </a>
+              </div>
+            </div>
           </div>
         </article>
 
@@ -142,21 +136,5 @@ export function ProductCarousel() {
         ) : null}
       </div>
     </section>
-  );
-}
-
-function ProductImage({ src, alt }: { src: string; alt: string }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) return <ProductFallback label={alt} />;
-  return <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} />;
-}
-
-function ProductFallback({ label }: { label: string }) {
-  return (
-    <div className="home-product__fallback" aria-label={`Identidade visual de ${label}`}>
-      <span>NEXO</span>
-      <i />
-      <strong>SYS</strong>
-    </div>
   );
 }
