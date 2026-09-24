@@ -1,101 +1,100 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
-import { DiscordIcon } from "@/components/brand/DiscordIcon";
-import { Button } from "@/components/ui/button";
+import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 import { siteConfig } from "@/config/site";
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden pt-32 pb-20 sm:pt-40 sm:pb-28">
-      <div className="pointer-events-none absolute -top-40 left-1/2 size-[620px] -translate-x-1/2 rounded-full bg-brand/12 blur-[140px]" />
-      <div className="relative mx-auto grid w-full max-w-[1240px] items-center gap-16 px-5 lg:grid-cols-[1.05fr_0.95fr]">
-        <div>
-          <p className="label-kicker">Automação • Gestão • Performance</p>
-          <h1 className="mt-6 text-[2.6rem] font-bold leading-[1.04] tracking-tight sm:text-[3.4rem] lg:text-[4rem]">
-            Bots feitos para
-            <br />
-            <span className="text-brand">automatizar</span>
-            <br />
-            seu servidor.
-          </h1>
-          <p className="mt-7 max-w-[46ch] text-[0.95rem] leading-relaxed text-muted-foreground">
-            Sistemas completos para Discord, criados para automatizar processos, organizar equipes e
-            facilitar a gestão do seu servidor.
+    <section className="home-hero" aria-labelledby="home-hero-title">
+      <div className="home-hero__coordinate home-hero-enter home-hero-enter--1" aria-hidden="true">
+        <span>NEXO / NETWORK</span>
+        <span>SYSTEMS FOR DISCORD</span>
+        <span>BR—01</span>
+      </div>
+
+      <div className="home-hero__layout">
+        <div className="home-hero__copy">
+          <p className="home-eyebrow home-hero-enter home-hero-enter--2">
+            <i /> Automation engine / 2026
           </p>
-          <div className="mt-9 flex flex-wrap gap-3">
-            <Button
-              asChild
-              size="lg"
-              className="h-12 gap-2 font-mono text-[11px] uppercase tracking-[0.18em]"
-            >
-              <a href="#produtos">
-                Ver produtos
-                <ArrowRight className="size-4" />
+          <h1 id="home-hero-title" className="home-hero__title" data-parallax="0.018">
+            <span className="home-hero-enter home-hero-enter--3">Bots feitos para</span>
+            <span className="home-hero-enter home-hero-enter--4 home-hero__title-accent">
+              automatizar
+            </span>
+            <span className="home-hero-enter home-hero-enter--5">seu servidor.</span>
+          </h1>
+
+          <div className="home-hero__support home-hero-enter home-hero-enter--6">
+            <p>
+              Sistemas completos para Discord, criados para organizar equipes, eliminar processos
+              manuais e transformar operação em escala.
+            </p>
+            <div className="home-hero__actions">
+              <a href="#produtos" className="home-primary-cta">
+                <span>Explorar sistemas</span>
+                <ArrowDownRight aria-hidden="true" />
               </a>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="h-12 gap-2 font-mono text-[11px] uppercase tracking-[0.18em]"
-            >
-              <a href={siteConfig.discordUrl} target="_blank" rel="noreferrer">
-                <DiscordIcon className="size-4" />
-                Discord
+              <a
+                href={siteConfig.discordUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="home-text-link"
+              >
+                Falar com a NEXO
+                <ArrowUpRight aria-hidden="true" />
               </a>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="ghost"
-              className="h-12 font-mono text-[11px] uppercase tracking-[0.18em]"
-            >
-              <Link to="/login">Entrar</Link>
-            </Button>
+              <Link to="/login" className="home-text-link home-text-link--muted">
+                Acessar painel
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            </div>
           </div>
         </div>
 
-        <HeroMark />
+        <CoreMonitor />
+      </div>
+
+      <div className="home-hero__footer home-hero-enter home-hero-enter--7">
+        <span>Scroll to explore</span>
+        <span className="home-hero__footer-line" />
+        <span>Core / Ready</span>
+        <span>Latency / 21ms</span>
       </div>
     </section>
   );
 }
 
-function HeroMark() {
+function CoreMonitor() {
   return (
-    <div className="relative aspect-square w-full max-w-[520px] justify-self-center">
-      <div className="absolute inset-0 rounded-[2px] border border-border/70 tech-grid" />
-      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-brand/30" />
-      <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-brand/20" />
-
-      <div className="absolute inset-[14%] rounded-[2px] border border-border bg-surface/80 shadow-[var(--shadow-panel)]">
-        <div className="hairline flex items-center justify-between px-4 py-2.5">
-          <span className="label-kicker text-[9px]">nexonetwork.dev</span>
-          <span className="flex gap-1.5">
-            <span className="size-1.5 rounded-full bg-brand" />
-            <span className="size-1.5 rounded-full bg-border" />
-            <span className="size-1.5 rounded-full bg-border" />
-          </span>
+    <aside className="home-core home-hero-enter home-hero-enter--6" data-parallax="-0.012">
+      <div className="home-core__topline">
+        <span>NEXO CORE</span>
+        <span className="home-core__online">
+          <i /> Online
+        </span>
+      </div>
+      <div className="home-core__index" aria-hidden="true">
+        01
+      </div>
+      <div className="home-core__orbit" aria-hidden="true">
+        <span />
+        <i />
+      </div>
+      <div className="home-core__readout">
+        <div>
+          <span>Bot engine</span>
+          <strong>Active</strong>
         </div>
-        <div className="flex h-[calc(100%-42px)] flex-col items-center justify-center gap-4">
-          <span className="font-display text-[clamp(1.6rem,5vw,2.6rem)] font-bold uppercase tracking-[0.28em] text-foreground">
-            NEXO
-          </span>
-          <span className="relative flex size-14 items-center justify-center">
-            <span className="absolute inset-0 rotate-45 border border-brand/60" />
-            <span className="absolute inset-3 rotate-45 bg-brand/25" />
-            <span className="absolute inset-0 rounded-full bg-brand/20 blur-xl" />
-          </span>
-          <span className="font-display text-[clamp(1.6rem,5vw,2.6rem)] font-bold uppercase tracking-[0.28em] text-brand">
-            NETWORK
-          </span>
+        <div>
+          <span>Discord API</span>
+          <strong>Connected</strong>
+        </div>
+        <div>
+          <span>Automation</span>
+          <strong>Running</strong>
         </div>
       </div>
-
-      <span className="absolute -left-px -top-px size-3 border-l border-t border-brand" />
-      <span className="absolute -right-px -top-px size-3 border-r border-t border-brand" />
-      <span className="absolute -bottom-px -left-px size-3 border-b border-l border-brand" />
-      <span className="absolute -bottom-px -right-px size-3 border-b border-r border-brand" />
-    </div>
+      <div className="home-core__code">SYS.NXO—26 / 003DC9</div>
+    </aside>
   );
 }

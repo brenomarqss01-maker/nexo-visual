@@ -25,32 +25,38 @@ const benefits = [
 
 export function Benefits() {
   return (
-    <section id="por-que" className="border-t border-border/60 py-24">
-      <div className="mx-auto w-full max-w-[1240px] px-5">
-        <p className="label-kicker">Por que NEXO NETWORK</p>
-        <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-end">
-          <h2 className="text-[2rem] font-bold leading-[1.1] sm:text-[2.6rem]">
-            Feito para quem precisa de <span className="text-brand">controle.</span>
-          </h2>
-          <p className="max-w-[52ch] text-sm leading-relaxed text-muted-foreground">
-            Cada sistema é desenvolvido pensando em automação, organização e facilidade de uso.
+    <section id="por-que" className="home-benefits">
+      <div className="home-section-heading" data-reveal="1">
+        <div>
+          <p className="home-eyebrow">
+            <i /> Why NEXO / 04 principles
           </p>
+          <h2>
+            Precisão no código.
+            <br />
+            <em>Controle</em> na operação.
+          </h2>
         </div>
+        <p>
+          Tecnologia só é útil quando simplifica. Cada camada da NEXO existe para tornar seu
+          servidor mais eficiente, previsível e fácil de gerenciar.
+        </p>
+      </div>
 
-        <div className="mt-12 grid gap-px overflow-hidden rounded-[2px] border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
-          {benefits.map((b) => (
-            <article
-              key={b.title}
-              className="group bg-surface p-7 transition-colors hover:bg-surface-2"
-            >
-              <b.icon className="size-5 text-brand" />
-              <h3 className="mt-6 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground">
-                {b.title}
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{b.text}</p>
-            </article>
-          ))}
-        </div>
+      <div className="home-benefits__list">
+        {benefits.map((benefit, index) => (
+          <article key={benefit.title} className="home-benefit" data-reveal={String(index + 1)}>
+            <span className="home-benefit__number">0{index + 1}</span>
+            <div className="home-benefit__title">
+              <benefit.icon aria-hidden="true" />
+              <h3>{benefit.title}</h3>
+            </div>
+            <p>{benefit.text}</p>
+            <span className="home-benefit__signal" aria-hidden="true">
+              <i />
+            </span>
+          </article>
+        ))}
       </div>
     </section>
   );

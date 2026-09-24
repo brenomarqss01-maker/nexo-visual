@@ -7,6 +7,8 @@ import { Stats } from "@/components/home/Stats";
 import { Clients } from "@/components/home/Clients";
 import { FinalCTA } from "@/components/home/FinalCTA";
 import { Footer } from "@/components/home/Footer";
+import { HomeMotion } from "@/components/home/HomeMotion";
+import { SignalMarquee } from "@/components/home/SignalMarquee";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -30,13 +32,15 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   return (
-    <div className="relative min-h-screen scroll-smooth">
-      <div className="pointer-events-none fixed inset-0 tech-grid opacity-60" aria-hidden="true" />
+    <div id="top" className="home-shell relative min-h-screen scroll-smooth">
+      <HomeMotion />
+      <div className="home-backdrop" aria-hidden="true" />
       <Navbar />
       <main className="relative">
         <Hero />
         <Stats />
         <ProductCarousel />
+        <SignalMarquee />
         <Benefits />
         <Clients />
         <FinalCTA />

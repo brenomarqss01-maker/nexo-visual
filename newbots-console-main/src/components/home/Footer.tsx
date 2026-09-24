@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { ArrowUpRight } from "lucide-react";
 import { NexoLogo } from "@/components/brand/NexoLogo";
 import { siteConfig } from "@/config/site";
 import { activeProducts } from "@/data/products";
@@ -7,100 +8,56 @@ export function Footer() {
   const items = activeProducts();
 
   return (
-    <footer className="border-t border-border/60 py-16">
-      <div className="mx-auto grid w-full max-w-[1240px] gap-10 px-5 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="home-footer">
+      <div className="home-footer__lead">
         <div>
-          <NexoLogo />
-          <p className="mt-4 max-w-[30ch] text-sm leading-relaxed text-muted-foreground">
-            Automação, tecnologia e gestão para comunidades Discord.
-          </p>
+          <NexoLogo className="home-footer__logo" />
+          <p>Automação, tecnologia e gestão para comunidades Discord.</p>
         </div>
+        <span>
+          NEXO NETWORK®
+          <br />
+          SYSTEMS / 2026
+        </span>
+      </div>
 
+      <div className="home-footer__grid">
         <div>
-          <p className="label-kicker">Produtos</p>
-          <ul className="mt-4 space-y-2.5 text-sm">
-            {items.map((p) => (
-              <li key={p.id}>
-                <a
-                  href={p.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {p.title}
-                </a>
-              </li>
-            ))}
-            <li>
-              <a
-                href="#produtos"
-                className="text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Todos os produtos
-              </a>
-            </li>
-          </ul>
+          <p className="home-footer__label">Produtos</p>
+          {items.map((product) => (
+            <a key={product.id} href={product.url} target="_blank" rel="noreferrer">
+              {product.title}
+              <ArrowUpRight aria-hidden="true" />
+            </a>
+          ))}
         </div>
-
         <div>
-          <p className="label-kicker">{siteConfig.companyName}</p>
-          <ul className="mt-4 space-y-2.5 text-sm">
-            <li>
-              <a
-                href="#por-que"
-                className="text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Por que NEXO NETWORK
-              </a>
-            </li>
-            <li>
-              <a
-                href="#clientes"
-                className="text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Clientes
-              </a>
-            </li>
-            <li>
-              <Link
-                to="/login"
-                className="text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Entrar
-              </Link>
-            </li>
-          </ul>
+          <p className="home-footer__label">Navegação</p>
+          <a href="#por-que">Por que NEXO</a>
+          <a href="#clientes">Clientes</a>
+          <Link to="/login">Entrar</Link>
         </div>
-
         <div>
-          <p className="label-kicker">Comunidade</p>
-          <ul className="mt-4 space-y-2.5 text-sm">
-            <li>
-              <a
-                href={siteConfig.discordUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Discord
-              </a>
-            </li>
-            <li>
-              <a
-                href={siteConfig.supportUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Suporte
-              </a>
-            </li>
-          </ul>
+          <p className="home-footer__label">Contato</p>
+          <a href={siteConfig.discordUrl} target="_blank" rel="noreferrer">
+            Discord
+            <ArrowUpRight aria-hidden="true" />
+          </a>
+          <a href={siteConfig.supportUrl} target="_blank" rel="noreferrer">
+            Suporte
+            <ArrowUpRight aria-hidden="true" />
+          </a>
         </div>
       </div>
 
-      <div className="mx-auto mt-12 w-full max-w-[1240px] border-t border-border/60 px-5 pt-6">
-        <p className="font-mono text-[11px] text-muted-foreground">{siteConfig.copyright}</p>
+      <div className="home-footer__bottom">
+        <p>{siteConfig.copyright}</p>
+        <p>
+          CORE / ONLINE <i />
+        </p>
+        <a href="#top" aria-label="Voltar ao topo">
+          Topo ↑
+        </a>
       </div>
     </footer>
   );
