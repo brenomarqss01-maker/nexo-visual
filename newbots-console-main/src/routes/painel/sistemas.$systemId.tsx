@@ -160,10 +160,10 @@ function ConfigureSystem() {
 
   return (
     <div className="space-y-8">
-      <div>
+      <div className="nexo-config-header">
         <Link
           to="/painel"
-          className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
+          className="nexo-config-back inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" /> Voltar
         </Link>
@@ -185,12 +185,15 @@ function ConfigureSystem() {
         </div>
       </div>
 
-      <div className="panel divide-y divide-border">
+      <div className="panel nexo-config-panel divide-y divide-border">
         {system.fields.length === 0 ? (
           <EmptyState>Este sistema ainda não possui campos configuráveis.</EmptyState>
         ) : (
           system.fields.map((field) => (
-            <div key={field.id} className="grid gap-3 px-6 py-5 md:grid-cols-[1fr_1.1fr] md:gap-8">
+            <div
+              key={field.id}
+              className="nexo-config-row grid gap-3 px-6 py-5 md:grid-cols-[1fr_1.1fr] md:gap-8"
+            >
               <div>
                 <p className="text-sm font-medium">
                   {field.title}
@@ -277,7 +280,7 @@ function ConfigureSystem() {
         )}
       </div>
 
-      <div className="flex items-center justify-end gap-3">
+      <div className="nexo-config-actions flex items-center justify-end gap-3">
         {dirty ? (
           <span className="font-mono text-[11px] text-warning">Alterações não salvas</span>
         ) : null}

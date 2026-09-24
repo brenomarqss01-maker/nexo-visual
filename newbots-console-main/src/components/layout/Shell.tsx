@@ -17,22 +17,46 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-function SidebarContent({ groups, onNavigate }: { groups: NavGroup[]; onNavigate?: () => void }) {
+type ShellVariant = "default" | "control";
+
+function SidebarContent({
+  groups,
+  onNavigate,
+  variant = "default",
+}: {
+  groups: NavGroup[];
+  onNavigate?: () => void;
+  variant?: ShellVariant;
+}) {
   const { user, signOut } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const control = variant === "control";
 
   return (
-    <div className="flex h-full flex-col bg-sidebar">
-      <div className="flex h-[72px] items-center px-6">
+    <div className={cn("flex h-full flex-col bg-sidebar", control && "nexo-control-sidebar")}>
+      <div className={cn("flex h-[72px] items-center px-6", control && "nexo-control-brand")}>
         <Link to="/" onClick={onNavigate}>
-          <NexoLogo />
+          <NexoLogo className={control ? "nexo-control-logo" : ""} />
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-6">
+      {control ? (
+        <div className="nexo-control-identity" aria-hidden="true">
+          <span>NEXO / CONTROL</span>
+          <span>
+            <i /> SYSTEM ONLINE
+          </span>
+        </div>
+      ) : null}
+
+      <nav
+        className={cn("flex-1 space-y-6 overflow-y-auto px-3 pb-6", control && "nexo-control-nav")}
+      >
         {groups.map((group) => (
-          <div key={group.title} className="space-y-1">
-            <p className="label-kicker px-3 pb-2">{group.title}</p>
+          <div key={group.title} className={cn("space-y-1", control && "nexo-control-nav__group")}>
+            <p className={cn("label-kicker px-3 pb-2", control && "nexo-control-nav__title")}>
+              {group.title}
+            </p>
             {group.items.map((item) => {
               const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
               return (
@@ -40,15 +64,22 @@ function SidebarContent({ groups, onNavigate }: { groups: NavGroup[]; onNavigate
                   key={item.to}
                   to={item.to}
                   onClick={onNavigate}
+                  data-active={active ? "true" : undefined}
                   className={cn(
                     "flex items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-sm transition-colors duration-150",
+                    control && "nexo-control-nav__item",
                     active
                       ? "border-sidebar-border bg-sidebar-primary text-sidebar-primary-foreground"
                       : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
                   )}
                 >
+                  {control ? (
+                    <span className="nexo-control-nav__indicator" aria-hidden="true" />
+                  ) : null}
                   <item.icon className="size-4 shrink-0" />
-                  <span className="truncate">{item.label}</span>
+                  <span className={cn("truncate", control && "nexo-control-nav__label")}>
+                    {item.label}
+                  </span>
                 </Link>
               );
             })}
@@ -56,9 +87,17 @@ function SidebarContent({ groups, onNavigate }: { groups: NavGroup[]; onNavigate
         ))}
       </nav>
 
-      <div className="flex items-center gap-3 border-t border-sidebar-border px-5 py-4">
+      <div
+        className={cn(
+          "flex items-center gap-3 border-t border-sidebar-border px-5 py-4",
+          control && "nexo-control-user",
+        )}
+      >
         <span
-          className="flex size-9 shrink-0 items-center justify-center rounded-full font-mono text-xs text-primary-foreground"
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-full font-mono text-xs text-primary-foreground",
+            control && "nexo-control-user__avatar",
+          )}
           style={{ backgroundColor: user?.avatarColor ?? "#4f7fd6" }}
         >
           {user?.name?.slice(0, 2).toUpperCase()}
@@ -71,7 +110,10 @@ function SidebarContent({ groups, onNavigate }: { groups: NavGroup[]; onNavigate
           type="button"
           onClick={() => void signOut()}
           aria-label="Sair"
-          className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+          className={cn(
+            "rounded-md p-2 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground",
+            control && "nexo-control-signout",
+          )}
         >
           <LogOut className="size-4" />
         </button>
@@ -80,13 +122,29 @@ function SidebarContent({ groups, onNavigate }: { groups: NavGroup[]; onNavigate
   );
 }
 
-export function Shell({ groups, children }: { groups: NavGroup[]; children: ReactNode }) {
+export function Shell({
+  groups,
+  children,
+  variant = "default",
+}: {
+  groups: NavGroup[];
+  children: ReactNode;
+  variant?: ShellVariant;
+}) {
   const [open, setOpen] = useState(false);
+  const control = variant === "control";
 
   return (
-    <div className="min-h-screen bg-background">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[256px] border-r border-sidebar-border lg:block">
-        <SidebarContent groups={groups} />
+    <div className={cn("min-h-screen bg-background", control && "nexo-control")}>
+      {control ? <div className="nexo-control-grid" aria-hidden="true" /> : null}
+
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-30 hidden w-[256px] border-r border-sidebar-border lg:block",
+          control && "nexo-control-sidebar-frame",
+        )}
+      >
+        <SidebarContent groups={groups} variant={variant} />
       </aside>
 
       {open ? (
@@ -96,8 +154,13 @@ export function Shell({ groups, children }: { groups: NavGroup[]; children: Reac
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 w-[268px] border-r border-sidebar-border animate-in slide-in-from-left duration-200">
-            <SidebarContent groups={groups} onNavigate={() => setOpen(false)} />
+          <div
+            className={cn(
+              "absolute inset-y-0 left-0 w-[268px] border-r border-sidebar-border animate-in slide-in-from-left duration-200",
+              control && "nexo-control-drawer",
+            )}
+          >
+            <SidebarContent groups={groups} onNavigate={() => setOpen(false)} variant={variant} />
           </div>
           <button
             aria-label="Fechar"
@@ -109,8 +172,26 @@ export function Shell({ groups, children }: { groups: NavGroup[]; children: Reac
         </div>
       ) : null}
 
-      <div className="lg:pl-[256px]">
-        <header className="flex h-[72px] items-center gap-3 border-b border-border px-4 lg:hidden">
+      <div className={cn("lg:pl-[256px]", control && "nexo-control-workspace")}>
+        {control ? (
+          <header className="nexo-control-topbar hidden lg:flex">
+            <div>
+              <i />
+              <span>NEXO / CONTROL</span>
+            </div>
+            <div>
+              <span>CORE / READY</span>
+              <span>SESSION / ACTIVE</span>
+            </div>
+          </header>
+        ) : null}
+
+        <header
+          className={cn(
+            "flex h-[72px] items-center gap-3 border-b border-border px-4 lg:hidden",
+            control && "nexo-control-mobile-header",
+          )}
+        >
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -119,9 +200,17 @@ export function Shell({ groups, children }: { groups: NavGroup[]; children: Reac
           >
             <Menu className="size-4" />
           </button>
-          <NexoLogo />
+          <NexoLogo className={control ? "nexo-control-mobile-logo" : ""} />
+          {control ? <span className="nexo-control-mobile-status">CONTROL / ACTIVE</span> : null}
         </header>
-        <main className="mx-auto w-full max-w-[1180px] px-5 py-8 sm:px-8 lg:py-12">{children}</main>
+        <main
+          className={cn(
+            "mx-auto w-full max-w-[1180px] px-5 py-8 sm:px-8 lg:py-12",
+            control && "nexo-control-main",
+          )}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

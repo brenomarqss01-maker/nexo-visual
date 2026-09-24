@@ -210,11 +210,11 @@ function BotPersonalization() {
         }
       />
 
-      <section className="panel overflow-hidden">
+      <section className="panel nexo-personalization-panel overflow-hidden">
         <div className="grid gap-0 lg:grid-cols-[minmax(320px,0.88fr)_1.12fr]">
           <div className="border-b border-border p-5 sm:p-7 lg:border-b-0 lg:border-r">
             <p className="label-kicker mb-4">Prévia da aplicação</p>
-            <div className="overflow-hidden rounded-xl border border-border bg-background shadow-2xl shadow-black/30">
+            <div className="nexo-application-preview overflow-hidden rounded-xl border border-border bg-background shadow-2xl shadow-black/30">
               <div className="relative aspect-[3/1] overflow-hidden bg-surface-2">
                 {bannerPreview ? (
                   <img
@@ -325,7 +325,7 @@ function BotPersonalization() {
         </div>
       </section>
 
-      <section className="panel p-5 sm:p-7">
+      <section className="panel nexo-status-panel p-5 sm:p-7">
         <div className="flex items-start gap-3">
           <span className="mt-0.5 rounded-lg border border-brand/20 bg-brand/10 p-2 text-brand">
             <Palette className="size-4" />
@@ -446,7 +446,7 @@ function ImageUploadCard({
   onSelect: (file: File | undefined, input: HTMLInputElement) => void;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-background/50 p-4">
+    <div className="nexo-upload-card rounded-xl border border-border bg-background/50 p-4">
       <div className="flex items-center gap-2">
         <ImageIcon className="size-4 text-brand" />
         <p className="text-sm font-medium">{title}</p>

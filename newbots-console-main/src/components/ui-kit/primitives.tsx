@@ -4,7 +4,7 @@ export function StatusBadge({ expired, className }: { expired: boolean; classNam
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em]",
+        "nexo-status-badge inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em]",
         expired
           ? "border-danger/30 bg-danger/10 text-danger"
           : "border-success/25 bg-success/10 text-success",
@@ -29,27 +29,31 @@ export function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div className="space-y-2">
+    <div className="nexo-page-header flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="nexo-page-header__copy space-y-2">
         {kicker ? (
           <div className="flex items-center gap-2">
             <span className="h-3 w-[3px] bg-brand" />
             <span className="label-kicker">{kicker}</span>
           </div>
         ) : null}
-        <h1 className="text-2xl font-bold tracking-tight sm:text-[1.75rem]">{title}</h1>
+        <h1 className="nexo-page-header__title text-2xl font-bold tracking-tight sm:text-[1.75rem]">
+          {title}
+        </h1>
         {description ? (
-          <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
+          <p className="nexo-page-header__description max-w-2xl text-sm text-muted-foreground">
+            {description}
+          </p>
         ) : null}
       </div>
-      {action}
+      {action ? <div className="nexo-page-header__action">{action}</div> : null}
     </div>
   );
 }
 
 export function EmptyState({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-[140px] items-center justify-center px-6 py-12 text-center text-sm text-muted-foreground">
+    <div className="nexo-empty-state flex min-h-[140px] items-center justify-center px-6 py-12 text-center text-sm text-muted-foreground">
       {children}
     </div>
   );

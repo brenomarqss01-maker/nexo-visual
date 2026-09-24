@@ -31,7 +31,7 @@ function Support() {
         title="Precisa de ajuda?"
         description="Nossa equipe responde direto no Discord. Tenha em mãos o ID do seu servidor e o nome do sistema."
       />
-      <div className="panel px-6 py-8">
+      <div className="panel nexo-support-card px-6 py-8">
         <p className="text-sm text-muted-foreground">
           Atendimento humano, sem robô intermediando. Resposta média em poucos minutos durante o
           horário comercial.

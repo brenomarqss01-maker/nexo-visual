@@ -101,7 +101,7 @@ function LeaderCard({
   value: (person: OrganizationMemberStat) => string;
 }) {
   return (
-    <div className="panel p-5">
+    <div className="panel nexo-leader-card p-5">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="size-4 text-brand" />
         <span className="label-kicker">{title}</span>
@@ -320,7 +320,7 @@ function OrganizationStatistics() {
         />
       </div>
 
-      <div className="panel p-5">
+      <div className="panel nexo-data-note p-5">
         <p className="label-kicker">Atualização dos dados</p>
         <p className="mt-2 text-sm text-muted-foreground">
           {statistics.updatedAt
@@ -333,7 +333,7 @@ function OrganizationStatistics() {
         {statisticsError && <p className="mt-2 text-sm text-destructive">{statisticsError}</p>}
       </div>
 
-      <div className="panel p-5">
+      <div className="panel nexo-danger-zone p-5">
         <p className="label-kicker">Limpar estatísticas</p>
         <p className="mt-2 text-sm text-muted-foreground">
           As limpezas afetam apenas o servidor selecionado e não removem suas configurações.
@@ -393,12 +393,14 @@ function MetricCard({
   icon: LucideIcon;
 }) {
   return (
-    <div className="panel p-5">
+    <div className="panel nexo-metric-card p-5">
       <div className="flex items-center justify-between gap-3">
         <span className="label-kicker">{label}</span>
         <Icon className="size-4 text-brand" />
       </div>
-      <p className="mt-4 truncate text-2xl font-bold tracking-tight">{value}</p>
+      <p className="nexo-metric-card__value mt-4 truncate text-2xl font-bold tracking-tight">
+        {value}
+      </p>
     </div>
   );
 }

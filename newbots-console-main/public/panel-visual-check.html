@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NEXO Control visual check</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div class="nexo-control min-h-screen bg-background">
+      <div class="nexo-control-grid" aria-hidden="true"></div>
+      <aside
+        class="nexo-control-sidebar-frame fixed inset-y-0 left-0 z-30 hidden w-[256px] border-r border-sidebar-border lg:block"
+      >
+        <div class="nexo-control-sidebar flex h-full flex-col bg-sidebar">
+          <div class="nexo-control-brand flex h-[72px] items-center px-6">
+            <strong class="font-display text-2xl tracking-[-0.08em]">NEXO</strong>
+          </div>
+          <div class="nexo-control-identity">
+            <span>NEXO / CONTROL</span><span><i></i>SYSTEM ONLINE</span>
+          </div>
+          <nav class="nexo-control-nav flex-1 space-y-6 overflow-y-auto px-3 pb-6">
+            <div class="nexo-control-nav__group space-y-1">
+              <p class="nexo-control-nav__title label-kicker px-3 pb-2">Área do cliente</p>
+              <a
+                class="nexo-control-nav__item flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm"
+                data-active="true"
+                href="#"
+                ><span class="nexo-control-nav__indicator"></span><b>□</b
+                ><span class="nexo-control-nav__label">Licenças</span></a
+              >
+              <a
+                class="nexo-control-nav__item flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm"
+                href="#"
+                ><span class="nexo-control-nav__indicator"></span><b>◇</b
+                ><span class="nexo-control-nav__label">Suporte</span></a
+              >
+              <a
+                class="nexo-control-nav__item flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm"
+                href="#"
+                ><span class="nexo-control-nav__indicator"></span><b>○</b
+                ><span class="nexo-control-nav__label">Personalização</span></a
+              >
+              <a
+                class="nexo-control-nav__item flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm"
+                href="#"
+                ><span class="nexo-control-nav__indicator"></span><b>△</b
+                ><span class="nexo-control-nav__label">Estatísticas</span></a
+              >
+            </div>
+          </nav>
+          <div class="nexo-control-user flex items-center gap-3 border-t px-5 py-4">
+            <span class="nexo-control-user__avatar flex size-9 items-center justify-center bg-brand font-mono text-xs"
+              >NX</span
+            >
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-medium">Cliente NEXO</p>
+              <p class="label-kicker">Cliente</p>
+            </div>
+            <button class="nexo-control-signout p-2">↗</button>
+          </div>
+        </div>
+      </aside>
+      <div class="nexo-control-workspace lg:pl-[256px]">
+        <header class="nexo-control-topbar hidden lg:flex">
+          <div><i></i><span>NEXO / CONTROL</span></div>
+          <div><span>CORE / READY</span><span>SESSION / ACTIVE</span></div>
+        </header>
+        <header class="nexo-control-mobile-header flex h-[72px] items-center gap-3 px-4 lg:hidden">
+          <button class="border p-2">☰</button><strong>NEXO</strong
+          ><span class="nexo-control-mobile-status">CONTROL / ACTIVE</span>
+        </header>
+        <main class="nexo-control-main mx-auto w-full max-w-[1180px] px-5 py-8 sm:px-8 lg:py-12">
+          <div class="space-y-8">
+            <div class="nexo-page-header flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div class="nexo-page-header__copy space-y-2">
+                <div class="flex items-center gap-2"><span class="h-3 w-[3px] bg-brand"></span><span class="label-kicker">Licenças</span></div>
+                <h1 class="nexo-page-header__title">Seus Sistemas</h1>
+                <p class="nexo-page-header__description text-sm">
+                  Configure todos os sistemas vinculados à sua conta e acompanhe o status das licenças.
+                </p>
+              </div>
+            </div>
+            <input
+              data-slot="input"
+              class="nexo-control-search h-12 w-full max-w-md border px-3"
+              placeholder="Filtrar sistemas..."
+            />
+            <div class="panel nexo-license-table overflow-hidden">
+              <div class="nexo-license-table__head hidden grid-cols-[2fr_1fr_1fr_120px] gap-4 border-b px-6 py-3.5 md:grid">
+                <span class="label-kicker">Sistema</span><span class="label-kicker">Status</span
+                ><span class="label-kicker">Expiração</span><span class="label-kicker text-right">Ações</span>
+              </div>
+              <div class="nexo-license-table__row grid grid-cols-1 gap-3 border-b px-6 py-4 md:grid-cols-[2fr_1fr_1fr_120px] md:items-center md:gap-4">
+                <div><p class="text-sm font-medium">Sistema de Registro</p><p class="font-mono text-[11px] text-muted-foreground">12 campos · base_registro</p></div>
+                <span class="nexo-status-badge inline-flex w-fit items-center gap-2 border border-success/25 bg-success/10 px-2.5 py-1 font-mono text-[10px] text-success">■ ATIVO</span>
+                <div class="text-sm text-muted-foreground"><p>30 de outubro de 2026</p><p class="font-mono text-[11px]">36 dias restantes</p></div>
+                <button data-slot="button" data-variant="secondary" class="px-3">Configurar →</button>
+              </div>
+              <div class="nexo-license-table__row grid grid-cols-1 gap-3 px-6 py-4 md:grid-cols-[2fr_1fr_1fr_120px] md:items-center md:gap-4">
+                <div><p class="text-sm font-medium">Sistema de Vendas</p><p class="font-mono text-[11px] text-muted-foreground">8 campos · base_vendas</p></div>
+                <span class="nexo-status-badge inline-flex w-fit items-center gap-2 border border-success/25 bg-success/10 px-2.5 py-1 font-mono text-[10px] text-success">■ ATIVO</span>
+                <div class="text-sm text-muted-foreground"><p>18 de novembro de 2026</p><p class="font-mono text-[11px]">55 dias restantes</p></div>
+                <button data-slot="button" data-variant="secondary" class="px-3">Configurar →</button>
+              </div>
+            </div>
+            <p class="nexo-license-count font-mono text-[11px] text-muted-foreground">2 sistemas.</p>
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div class="panel nexo-metric-card p-5"><span class="label-kicker">Recrutados</span><p class="nexo-metric-card__value mt-4">142</p></div>
+              <div class="panel nexo-metric-card p-5"><span class="label-kicker">Vendas realizadas</span><p class="nexo-metric-card__value mt-4">98</p></div>
+              <div class="panel nexo-metric-card p-5"><span class="label-kicker">Receita</span><p class="nexo-metric-card__value mt-4">R$ 12.480</p></div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+  <script>
+    window.addEventListener("load", () => {
+      window.setTimeout(() => {
+        document.documentElement.dataset.viewport = String(window.innerWidth);
+        document.documentElement.dataset.scrollWidth = String(document.documentElement.scrollWidth);
+      }, 250);
+    });
+  </script>
+</html>

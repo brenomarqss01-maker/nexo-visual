@@ -54,7 +54,7 @@ function ClientLayout() {
   if (!ready || !discordId || !selectedClientId) return null;
 
   return (
-    <Shell groups={groups}>
+    <Shell groups={groups} variant="control">
       <Outlet />
     </Shell>
   );

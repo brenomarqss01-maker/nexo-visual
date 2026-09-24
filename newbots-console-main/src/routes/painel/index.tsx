@@ -75,11 +75,11 @@ function ClientSystems() {
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Filtrar sistemas..."
-            className="h-12 max-w-md"
+            className="nexo-control-search h-12 max-w-md"
           />
 
-          <div className="panel overflow-hidden">
-            <div className="hidden grid-cols-[2fr_1fr_1fr_120px] gap-4 border-b border-border px-6 py-3.5 md:grid">
+          <div className="panel nexo-license-table overflow-hidden">
+            <div className="nexo-license-table__head hidden grid-cols-[2fr_1fr_1fr_120px] gap-4 border-b border-border px-6 py-3.5 md:grid">
               <span className="label-kicker">Sistema</span>
               <span className="label-kicker">Status</span>
               <span className="label-kicker">Expiração</span>
@@ -94,7 +94,7 @@ function ClientSystems() {
                 return (
                   <div
                     key={license.id}
-                    className="grid grid-cols-1 gap-3 border-b border-border/70 px-6 py-4 transition-colors last:border-0 hover:bg-accent/40 md:grid-cols-[2fr_1fr_1fr_120px] md:items-center md:gap-4"
+                    className="nexo-license-table__row grid grid-cols-1 gap-3 border-b border-border/70 px-6 py-4 transition-colors last:border-0 hover:bg-accent/40 md:grid-cols-[2fr_1fr_1fr_120px] md:items-center md:gap-4"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{system.name}</p>
@@ -130,7 +130,7 @@ function ClientSystems() {
             )}
           </div>
 
-          <p className="font-mono text-[11px] text-muted-foreground">
+          <p className="nexo-license-count font-mono text-[11px] text-muted-foreground">
             {rows.length} {rows.length === 1 ? "sistema" : "sistemas"}.
           </p>
         </>
